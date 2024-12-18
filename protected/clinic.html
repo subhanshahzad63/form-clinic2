@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Document</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        width: 700px;
+        padding: 20px;
+        /* Reduce padding */
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        margin-top: 0;
+        /* Remove any extra margins */
+      }
+
+      .title {
+        font-weight: bold;
+        font-size: 16px;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        /* Adjust bottom margin */
+      }
+
+      .address {
+        text-align: left;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      .section-title {
+        text-align: left;
+        font-size: 14px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        border: 1px solid black;
+      }
+
+      @media print {
+        /* Show the hidden image in PDF */
+        .hidden-pdf-image {
+          display: block !important;
+        }
+
+        .approval-section {
+          display: none !important;
+        }
+
+        /* Hide buttons in the PDF */
+        button {
+          display: none !important;
+        }
+
+        #clearBtn {
+          display: none !important;
+        }
+
+        .upload-section,
+        .section-title.upload-section-title {
+          display: none !important;
+        }
+
+        /* Show uploaded images section in the PDF */
+        .uploadedImages {
+          display: block !important;
+        }
+
+        .gold-card {
+          display: flex !important;
+        }
+
+        /* Ensure no extra page breaks */
+        body {
+          overflow: hidden; /* Prevent overflow */
+        }
+
+        /* Control page breaks after each section */
+        .section-title {
+          page-break-after: avoid; /* Avoid breaking after section titles */
+        }
+
+        .final-section {
+          page-break-after: avoid; /* Avoid breaking after final section */
+        }
+
+        .uploadedImages {
+          page-break-before: always; /* Ensure it starts on a new page */
+        }
+      }
+
+      /* Hide uploaded images section by default in the browser view */
+      .uploadedImages {
+        display: none;
+      }
+
+      /* Hide the image by default in the browser */
+      .hidden-pdf-image {
+        display: none;
+      }
+
+      td {
+        padding: 5px;
+        text-align: left;
+        font-size: 14px;
+        border-bottom: 1px solid black;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        border: none;
+        font-size: 14px;
+        outline: none;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .rm-input {
+        width: auto;
+        display: inline-block;
+        margin-left: 5px;
+        /* Add a small margin to space it from "RM" */
+      }
+
+      td .rm-input {
+        display: inline;
+        width: 80px;
+        /* Adjust width if needed */
+      }
+
+      .section-b table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        border: 1px solid black;
+      }
+
+      .section-b th,
+      .section-b td {
+        padding: 5px;
+        text-align: left;
+        font-size: 14px;
+        border: 1px solid black;
+      }
+
+      .section-b .right-align {
+        text-align: right;
+      }
+
+      .final-section {
+        text-align: left;
+        font-size: 14px;
+        margin-top: 20px;
+      }
+
+      .final-section ol {
+        margin-left: 20px;
+      }
+
+      .signature-section {
+        margin-top: 30px;
+        text-align: left;
+      }
+
+      .final-section ol {
+        margin-left: 0;
+        padding-left: 20px;
+      }
+
+      .final-section input[type="text"] {
+        width: 150px;
+        border-bottom: 1px solid black;
+        display: inline-block;
+      }
+
+      hr {
+        border: 0.5px solid black;
+        margin: 20px 0;
+      }
+
+      img {
+        width: 100%;
+        max-width: 700px;
+      }
+
+      /* Adjustments for smaller signature canvas */
+      canvas {
+        border: 1px solid black;
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      .signature-container {
+        display: inline-block;
+      }
+
+      button {
+        margin-top: 10px;
+        padding: 5px;
+        background-color: #008cba;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background-color: grey;
+      }
+
+      #loader {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .spinner {
+        border: 16px solid #f3f3f3;
+        border-top: 16px solid #3498db;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .upload-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px; /* Space between each input */
+      }
+
+      .upload-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .upload-row label {
+        width: 300px; /* Adjust the width to fit your requirements */
+        text-align: left;
+        margin-right: 10px;
+      }
+
+      .upload-row input[type="file"] {
+        flex-grow: 1; /* Make the input field stretch */
+      }
+
+      .approval-section {
+        margin-top: 10px;
+        text-align: left;
+      }
+
+      .approval-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-top: 10px;
+      }
+
+      .signature-info p {
+        margin: 5px 0;
+      }
+
+      .cop-rasmi {
+        border: 1px solid black;
+        width: 150px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-style: italic;
+        color: grey;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .container {
+          width: 90%;
+          padding: 15px;
+        }
+
+        .title {
+          font-size: 14px;
+        }
+
+        .address,
+        .section-title,
+        td {
+          font-size: 12px;
+        }
+
+        img {
+          max-width: 100%;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+          font-size: 12px;
+        }
+
+        button {
+          padding: 10px;
+        }
+
+        .signature-section {
+          margin-top: 20px;
+        }
+      }
+
+      /* Updated Modal Styling */
+      .modal {
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.75); /* Darken the background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px; /* Rounded corners */
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Elegant shadow */
+        max-width: max-content; /* Adjust modal size */
+        width: max-content; /* Take full width on small screens */
+        text-align: center;
+        position: relative;
+        transition: all 0.3s ease-in-out; /* Smooth transition */
+        overflow: hidden;
+      }
+
+      .modal-content h3 {
+        font-size: 1.5rem; /* Increased title size */
+        margin-bottom: 20px;
+        color: #333;
+        font-weight: 600; /* Medium weight for a clean look */
+      }
+
+      #cropImage {
+        max-width: 100%;
+        max-height: 300px; /* Prevent overflow */
+        border-radius: 8px; /* Smooth edges for image */
+        margin-bottom: 20px;
+      }
+
+      #cropButton {
+        background-color: #008cba;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+      }
+
+      #cropButton:hover {
+        background-color: #005f8b; /* Darker shade for hover */
+      }
+
+      /* Close button */
+      .modal-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        cursor: pointer;
+        color: #666;
+      }
+
+      .modal-close:hover {
+        color: #ff4d4d; /* Red hover effect for close button */
+      }
+
+      @media (max-width: 768px) {
+        .modal-content {
+          text-align: center;
+          max-width: max-content; /* Adjust modal width for mobile */
+          max-height: 80%; /* Limit modal height for mobile */
+          overflow: scroll;
+          margin-right: 20px;
+        }
+
+        #cropImage {
+          max-height: 150px; /* Constrain image height further for mobile */
+          max-width: 150px;
+        }
+
+        #cropButton {
+          width: 100%; /* Make button full width on small screens */
+          padding: 12px;
+        }
+
+        .modal-close {
+          padding-top: 0;
+          margin-bottom: 20px;
+        }
+      }
+
+      /* Stamp Selection Modal Styling */
+      .modal-stamp {
+        position: fixed;
+        z-index: 10000; /* Ensure it appears above other elements */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+      }
+
+      .modal-content-stamp {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        position: relative;
+        transition: all 0.3s ease-in-out;
+        overflow: hidden;
+      }
+
+      .modal-content-stamp h3 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        color: #333;
+        font-weight: 600;
+      }
+
+      .stamp-selection label {
+        display: block;
+        font-size: 1rem;
+        margin-bottom: 10px;
+        text-align: left;
+      }
+
+      #selectStampButton {
+        background-color: #008cba;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+      }
+
+      #selectStampButton:hover {
+        background-color: #005f8b;
+      }
+
+      .modal-close-stamp {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        cursor: pointer;
+        color: #666;
+      }
+
+      .modal-close-stamp:hover {
+        color: #ff4d4d;
+      }
+
+      @media (max-width: 768px) {
+        .modal-content-stamp {
+          max-width: 90%;
+        }
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="title">
+        Pengesahan Pendapatan dan Tidak Mendapat Pembiayaan / Perlindungan Yang
+        Serupa
+      </div>
+      <div class="address">
+        Kepada,<br />
+        Pengarah<br />
+        Jabatan Kebajikan Masyarakat Sarawak
+      </div>
+
+      <div class="section-title">Bahagian A: Maklumat Pemohon</div>
+      <table>
+        <tr>
+          <td class="col-label">Nama Pemohon</td>
+          <td class="col-separator">:</td>
+          <td class="col-value">
+            <input type="text" placeholder="Enter name" />
+          </td>
+        </tr>
+        <tr>
+          <td class="col-label">No. Kad Pengenalan</td>
+          <td class="col-separator">:</td>
+          <td class="col-value">
+            <input type="text" placeholder="Enter ID number" />
+          </td>
+        </tr>
+        <tr>
+          <td class="col-label">No. Telefon</td>
+          <td class="col-separator">:</td>
+          <td class="col-value">
+            <input type="text" placeholder="Enter phone number" />
+          </td>
+        </tr>
+        <tr>
+          <td class="col-label">Pekerjaan</td>
+          <td class="col-separator">:</td>
+          <td class="col-value">
+            <input type="text" placeholder="Enter occupation" />
+          </td>
+        </tr>
+        <tr>
+          <td class="col-label">Pendapatan Sebulan</td>
+          <td class="col-separator">:</td>
+          <td class="col-value">
+            RM <input type="number" class="rm-input" placeholder="Amount" />
+          </td>
+        </tr>
+      </table>
+
+      <div class="section-title">
+        Bahagian B: Pendapatan Ahli isi Rumah Yang Tinggal Bersama
+      </div>
+      <div class="section-b">
+        <table>
+          <thead>
+            <tr>
+              <th>Bil</th>
+              <th>Ahli Keluarga Yang Tinggal Bersama</th>
+              <th>Pekerjaan</th>
+              <th>Pendapatan (RM)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1.</td>
+              <td><input type="text" class="family-name" /></td>
+              <td><input type="text" class="family-occupation" /></td>
+              <td><input type="text" class="family-income" /></td>
+            </tr>
+            <tr>
+              <td>2.</td>
+              <td><input type="text" class="family-name" /></td>
+              <td><input type="text" class="family-occupation" /></td>
+              <td><input type="text" class="family-income" /></td>
+            </tr>
+            <tr>
+              <td>3.</td>
+              <td><input type="text" class="family-name" /></td>
+              <td><input type="text" class="family-occupation" /></td>
+              <td><input type="text" class="family-income" /></td>
+            </tr>
+            <tr>
+              <td>4.</td>
+              <td><input type="text" class="family-name" /></td>
+              <td><input type="text" class="family-occupation" /></td>
+              <td><input type="text" class="family-income" /></td>
+            </tr>
+            <tr>
+              <td>5.</td>
+              <td><input type="text" class="family-name" /></td>
+              <td><input type="text" class="family-occupation" /></td>
+              <td><input type="text" class="family-income" /></td>
+            </tr>
+            <tr>
+              <td>6.</td>
+              <td><input type="text" class="family-name" /></td>
+              <td><input type="text" class="family-occupation" /></td>
+              <td><input type="text" class="family-income" /></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="right-align">Jumlah</td>
+              <td>RM <input type="text" id="rm-jum" class="rm-input" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="final-section">
+        <p>
+          Dengan ini saya mengaku bahawa semua maklumat yang dinyatakan adalah
+          benar. Sekiranya maklumat yang diberikan adalah tidak benar maka
+          permohonan ini akan terbatal.
+        </p>
+        <ol>
+          <li>
+            Pendapatan saya dan Isi Rumah yang tinggal bersama berjumlah RM
+            <input
+              type="text"
+              class="final-income"
+              style="border-bottom: 1px solid black"
+            />
+          </li>
+          <li>
+            Mengesahkan bahawa saya tidak mendapat pembiayaan/perlindungan yang
+            serupa dari mana-mana agensi.
+          </li>
+        </ol>
+      </div>
+
+      <!-- New Section for Uploading ID and Gold Card -->
+      <div class="section-title">
+        Bahagian C: Muat Naik Gambar Kad Pengenalan dan Kad Emas
+      </div>
+      <div class="upload-section">
+        <div class="upload-row">
+          <label for="idCardFront"
+            >Gambar Hadapan Kad Pengenalan (Required):</label
+          >
+          <input type="file" id="idCardFront" accept="image/*" required />
+        </div>
+
+        <div class="upload-row">
+          <label for="idCardBack"
+            >Gambar Belakang Kad Pengenalan (Required):</label
+          >
+          <input type="file" id="idCardBack" accept="image/*" required />
+        </div>
+
+        <div class="upload-row">
+          <label for="goldCardFront">Gambar Hadapan Kad Emas (Optional):</label>
+          <input type="file" id="goldCardFront" accept="image/*" />
+        </div>
+
+        <div class="upload-row">
+          <label for="goldCardBack">Gambar Belakang Kad Emas (Optional):</label>
+          <input type="file" id="goldCardBack" accept="image/*" />
+        </div>
+      </div>
+
+      <!-- Modal for Image Cropping -->
+
+      <div id="cropModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <button class="modal-close" id="closeModal">&times;</button>
+          <h3>Adjust and Crop Your Image</h3>
+          <img id="cropImage" src="" alt="Image to crop" />
+          <button id="cropButton">Crop & Save</button>
+        </div>
+      </div>
+
+      <!-- Modal for Stamp Selection -->
+      <div id="stampModal" class="modal-stamp" style="display: none">
+        <div class="modal-content-stamp">
+          <button class="modal-close-stamp" id="closeStampModal">
+            &times;
+          </button>
+          <h3>Select a Stamp</h3>
+          <div class="stamp-selection">
+            <label
+              ><input
+                type="radio"
+                name="selectedStamp"
+                value="albert"
+                required
+              />
+              Albert</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="chan" />
+              Chan</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="chumang" />
+              Chumang</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="jarek" />
+              Jarek</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="jong" />
+              Jong</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="rushdi" />
+              Rushdi</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="saat" />
+              Saat</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="amir" />
+              Amir</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="jempai" />
+              Jempai</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="lai" />
+              Lai</label
+            ><br />
+            <label
+              ><input type="radio" name="selectedStamp" value="sunani" />
+              Sunani</label
+            ><br />
+          </div>
+          <button id="selectStampButton">Select Stamp</button>
+        </div>
+      </div>
+
+      <div class="signature-section">
+        <label for="signatureCanvas">Tandatangan atau Cop Jari :</label>
+        <div class="signature-container" id="signatureContainer">
+          <canvas id="signatureCanvas" width="150" height="50"></canvas>
+          <button id="clearBtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="signature-section">
+        <p>
+          Tarikh:
+          <input
+            type="text"
+            class="signature-date"
+            style="border-bottom: 1px solid black; width: 150px"
+            disabled
+          />
+        </p>
+      </div>
+
+      <hr style="border: 0.5px solid black; margin-bottom: 20px" />
+      <div class="section-title">
+        PENGESAHAN OLEH KETUA KAUM / KETUA MASYARAKAT / PEGAWAI KUMPULAN A
+      </div>
+      <p style="text-align: left">
+        Dengan ini saya mengesahkan bahawa sepanjang pengetahuan saya, maklumat
+        yang diberikan oleh pemohon adalah benar.
+      </p>
+      <div style="text-align: left">
+        <img
+          class="hidden-pdf-image"
+          src="/assets/1.png"
+          alt="Signature and Stamp"
+          style="width: 100%; max-width: 800px; height: 120px"
+        />
+      </div>
+      <div
+        class="uploadedImages"
+        id="uploadedImages"
+        style="page-break-before: always; height: 100vh; display: none"
+      >
+        <div
+          class="id-card"
+          style="
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+            width: 100%;
+          "
+        >
+          <div>
+            <h4>Kad Pengenalan Hadapan</h4>
+            <img
+              id="displayIdCardFront"
+              class="displayIdCardFront"
+              src=""
+              alt="ID Card Front"
+              style="min-height: 220px; max-height: 220px; width: 90%"
+            />
+          </div>
+          <div>
+            <h4>Kad Pengenalan Belakang</h4>
+            <img
+              id="displayIdCardBack"
+              class="displayIdCardBack"
+              src=""
+              alt="ID Card Back"
+              style="min-height: 220px; max-height: 220px; width: 90%"
+            />
+          </div>
+        </div>
+        <div
+          class="gold-card"
+          style="
+            display: none;
+            justify-content: center;
+            margin-top: 40px;
+            width: 100%;
+          "
+        >
+          <div>
+            <h4>Kad Emas Hadapan</h4>
+            <img
+              id="displayGoldCardFront"
+              class="displayGoldCardFront"
+              src=""
+              alt="Gold Card Front"
+              style="min-height: 220px; max-height: 220px; width: 90%"
+            />
+          </div>
+          <div>
+            <h4>Kad Emas Belakang</h4>
+            <img
+              id="displayGoldCardBack"
+              class="displayGoldCardBack"
+              src=""
+              alt="Gold Card Back"
+              style="min-height: 220px; max-height: 220px; width: 90%"
+            />
+          </div>
+        </div>
+      </div>
+      <div id="loader" style="display: none">
+        <div class="spinner"></div>
+      </div>
+
+      <div class="approval-section">
+        <div class="approval-row">
+          <div class="signature-info">
+            <p>Tandatangan :</p>
+            <p>Tarikh :</p>
+          </div>
+          <div class="cop-rasmi">
+            <p>Cop Rasmi</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="downloadBtn">Submit</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@1.0.16/dist/browser-image-compression.js"></script>
+
+    <script>
+      // Signature Canvas
+      const canvas = document.getElementById("signatureCanvas");
+      const ctx = canvas.getContext("2d");
+      let drawing = false;
+
+      // Mouse Events for signature canvas
+      canvas.addEventListener("mousedown", startDrawing);
+      canvas.addEventListener("mousemove", draw);
+      canvas.addEventListener("mouseup", stopDrawing);
+      canvas.addEventListener("mouseleave", stopDrawing);
+
+      // Touch Events for mobile/touch devices
+      canvas.addEventListener("touchstart", startTouchDrawing, {
+        passive: false,
+      });
+      canvas.addEventListener("touchmove", drawTouch, { passive: false });
+      canvas.addEventListener("touchend", stopDrawing);
+
+      function startTouchDrawing(e) {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousedown", {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+        canvas.dispatchEvent(mouseEvent);
+      }
+
+      function drawTouch(e) {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousemove", {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+        canvas.dispatchEvent(mouseEvent);
+      }
+
+      function startDrawing(e) {
+        drawing = true;
+        draw(e); // Draw the initial point
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "black";
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      }
+
+      function stopDrawing() {
+        drawing = false;
+        ctx.beginPath(); // Reset the path
+      }
+
+      // Clear the signature canvas
+      document
+        .getElementById("clearBtn")
+        .addEventListener("click", function () {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+      // Auto-generate the current date for "Tarikh"
+      document.addEventListener("DOMContentLoaded", function () {
+        const dateField = document.querySelector(".signature-date");
+        const currentDate = new Date().toLocaleDateString("en-GB"); // Format as DD/MM/YYYY
+        dateField.value = currentDate;
+      });
+
+      // Image Compression Options
+      const compressionOptions = {
+        maxSizeMB: 2, // Compress to below 2 MB
+        maxWidthOrHeight: 1024, // Resize images if necessary
+        useWebWorker: true, // Speed up compression with Web Workers
+      };
+
+      // Function to compress image before uploading
+      async function compressImage(file) {
+        try {
+          const compressedFile = await imageCompression(
+            file,
+            compressionOptions
+          );
+          return compressedFile;
+        } catch (error) {
+          console.error("Error compressing image:", error);
+          throw error;
+        }
+      }
+
+      // Function to get File Data URL
+      function getFileDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Function to return cropped or original file
+      function getCroppedOrOriginalFile(inputElement) {
+        return new Promise((resolve) => {
+          if (inputElement.dataset.cropped) {
+            // Return cropped image as a file
+            fetch(inputElement.dataset.cropped)
+              .then((res) => res.blob())
+              .then((blob) =>
+                resolve(
+                  new File([blob], "cropped-image.jpg", { type: "image/jpeg" })
+                )
+              );
+          } else {
+            resolve(inputElement.files[0]); // Return the original file
+          }
+        });
+      }
+
+      // Event Listener for the "Submit" Button
+      document
+        .getElementById("downloadBtn")
+        .addEventListener("click", function (event) {
+          event.preventDefault(); // Prevent form default submission
+          document.getElementById("stampModal").style.display = "flex"; // Show stamp modal
+        });
+
+      // Handle stamp selection and form submission
+      document
+        .getElementById("selectStampButton")
+        .addEventListener("click", function () {
+          // Get the selected stamp
+          const selectedStampInput = document.querySelector(
+            'input[name="selectedStamp"]:checked'
+          );
+          if (!selectedStampInput) {
+            alert("Please select a stamp.");
+            return;
+          }
+          const selectedStamp = selectedStampInput.value;
+
+          // Close the modal
+          document.getElementById("stampModal").style.display = "none";
+
+          // Proceed with form submission
+          submitForm(selectedStamp);
+        });
+
+      // Close the stamp modal when the close button is clicked
+      document
+        .getElementById("closeStampModal")
+        .addEventListener("click", function () {
+          document.getElementById("stampModal").style.display = "none";
+        });
+
+      // The submitForm function encapsulates the form submission logic
+      async function submitForm(selectedStamp) {
+        document.getElementById("loader").style.display = "flex";
+
+        const signatureDataUrl = canvas.toDataURL(); // Capture the signature
+
+        const idCardFrontInput = document.getElementById("idCardFront");
+        const idCardBackInput = document.getElementById("idCardBack");
+        const goldCardFrontInput = document.getElementById("goldCardFront");
+        const goldCardBackInput = document.getElementById("goldCardBack");
+
+        if (!idCardFrontInput.files[0] || !idCardBackInput.files[0]) {
+          alert(
+            "Please upload both Gambar Hadapan Kad Pengenalan and Gambar Belakang Kad Pengenalan."
+          );
+          document.getElementById("loader").style.display = "none";
+          return;
+        }
+
+        try {
+          // Use cropped images if available, else compress original images
+          const compressedIdCardFront = await compressImage(
+            await getCroppedOrOriginalFile(idCardFrontInput)
+          );
+          const compressedIdCardBack = await compressImage(
+            await getCroppedOrOriginalFile(idCardBackInput)
+          );
+          const compressedGoldCardFront = goldCardFrontInput.files[0]
+            ? await compressImage(
+                await getCroppedOrOriginalFile(goldCardFrontInput)
+              )
+            : null;
+          const compressedGoldCardBack = goldCardBackInput.files[0]
+            ? await compressImage(
+                await getCroppedOrOriginalFile(goldCardBackInput)
+              )
+            : null;
+
+          const formData = {
+            applicantName: document.querySelector(
+              'input[placeholder="Enter name"]'
+            ).value,
+            idNumber: document.querySelector(
+              'input[placeholder="Enter ID number"]'
+            ).value,
+            phoneNumber: document.querySelector(
+              'input[placeholder="Enter phone number"]'
+            ).value,
+            occupation: document.querySelector(
+              'input[placeholder="Enter occupation"]'
+            ).value,
+            income: document.querySelector('input[placeholder="Amount"]').value,
+            familyMembers: Array.from(
+              document.querySelectorAll(".family-name")
+            ).map((el, index) => ({
+              name: el.value,
+              occupation:
+                document.querySelectorAll(".family-occupation")[index].value,
+              income: document.querySelectorAll(".family-income")[index].value,
+            })),
+            jum: document.querySelector("#rm-jum").value,
+            finalIncome: document.querySelector(".final-income").value,
+            signatureDate: document.querySelector(".signature-date").value,
+            signature: signatureDataUrl,
+            idCardFront: await getFileDataUrl(compressedIdCardFront),
+            idCardBack: await getFileDataUrl(compressedIdCardBack),
+            goldCardFront: compressedGoldCardFront
+              ? await getFileDataUrl(compressedGoldCardFront)
+              : null,
+            goldCardBack: compressedGoldCardBack
+              ? await getFileDataUrl(compressedGoldCardBack)
+              : null,
+            selectedStamp: selectedStamp, // Include the selected stamp
+          };
+
+          const response = await fetch("/download-pdf", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            alert("PDF generated and emailed successfully!");
+            resetForm(); // Call the reset function after successful submission
+          } else {
+            alert("Error generating PDF: " + (data.error || "Unknown error"));
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("An error occurred during form submission. Please try again.");
+        } finally {
+          document.getElementById("loader").style.display = "none";
+        }
+      }
+
+      // Function to reset the form after successful submission
+      function resetForm() {
+        document
+          .querySelectorAll('input[type="text"], input[type="number"]')
+          .forEach((input) => (input.value = ""));
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the signature canvas
+        document.querySelector(".signature-date").value =
+          new Date().toLocaleDateString("en-GB"); // Reset date
+        document.querySelectorAll('input[type="file"]').forEach((input) => {
+          input.value = "";
+          input.dataset.cropped = ""; // Clear any cropped data
+        });
+      }
+
+      // Image Cropping Functionality
+      let cropper;
+      let currentInputElement;
+      const cropModal = document.getElementById("cropModal");
+      const cropImage = document.getElementById("cropImage");
+      const cropButton = document.getElementById("cropButton");
+      const closeModal = document.getElementById("closeModal");
+
+      function handleFileCrop(inputElement) {
+        inputElement.addEventListener("click", function () {
+          inputElement.value = ""; // Reset the input's value to ensure change event fires
+        });
+
+        inputElement.addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          currentInputElement = inputElement;
+
+          inputElement.dataset.cropped = ""; // Clear any previous cropped data
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            cropImage.src = e.target.result;
+            cropModal.style.display = "flex"; // Open the modal
+
+            cropImage.onload = function () {
+              if (cropper) {
+                cropper.destroy();
+              }
+              cropper = new Cropper(cropImage, {
+                aspectRatio: 1.6,
+                viewMode: 1,
+                autoCropArea: 1,
+                scalable: true,
+                zoomable: true,
+              });
+            };
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      cropButton.addEventListener("click", function () {
+        if (cropper) {
+          const canvas = cropper.getCroppedCanvas();
+          canvas.toBlob(function (blob) {
+            const croppedFile = new File([blob], "cropped-image.jpg", {
+              type: "image/jpeg",
+            });
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              currentInputElement.dataset.cropped = e.target.result;
+            };
+            reader.readAsDataURL(croppedFile);
+
+            cropModal.style.display = "none"; // Close the modal
+            cropper.destroy();
+          });
+        }
+      });
+
+      closeModal.addEventListener("click", function () {
+        cropModal.style.display = "none";
+        if (cropper) cropper.destroy(); // Clean up Cropper.js instance
+      });
+
+      handleFileCrop(document.getElementById("idCardFront"));
+      handleFileCrop(document.getElementById("idCardBack"));
+      handleFileCrop(document.getElementById("goldCardFront"));
+      handleFileCrop(document.getElementById("goldCardBack"));
+    </script>
+  </body>
+</html>

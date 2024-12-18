@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #d9534f;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .user-form {
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: calc(50% - 20px);
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #usersTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #usersTable th,
+        #usersTable td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #usersTable th {
+            background-color: #007bff;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+
+        .action-btn {
+            margin-right: 5px;
+            padding: 5px 10px;
+            background-color: #f0ad4e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .action-btn.delete {
+            background-color: #d9534f;
+        }
+
+        .action-btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-wrapper {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+
+    <div class="container">
+        <h2>Admin Dashboard</h2>
+
+        <div class="user-form">
+            <h3>Create User</h3>
+            <form id="createUserForm">
+                <input type="email" id="userEmail" placeholder="Enter user email" required>
+                <input type="password" id="userPassword" placeholder="Enter user password" required>
+                <button type="submit">Create User</button>
+            </form>
+        </div>
+
+        <div id="usersList">
+            <h3>Users List</h3>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Users will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('createUserForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+
+            const response = await fetch('/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (response.ok) {
+                alert('User created successfully!');
+                loadUsers(); // Reload users after creating a new user
+            } else {
+                alert('Error creating user.');
+            }
+        });
+
+        // Function to load all users
+        async function loadUsers() {
+            const response = await fetch('/admin/users-data');
+            const users = await response.json();
+            const usersTableBody = document.querySelector('#usersTable tbody');
+            usersTableBody.innerHTML = ''; // Clear existing users
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.email}</td>
+                    <td>
+                        <button class="action-btn delete" onclick="deleteUser('${user._id}')">Delete</button>
+                        <button class="action-btn" onclick="updateUser('${user._id}', '${user.email}')">Update</button>
+                    </td>
+                `;
+                usersTableBody.appendChild(row);
+            });
+        }
+
+        // Function to delete a user
+        async function deleteUser(userId) {
+            const response = await fetch(`/admin/users/${userId}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert('User deleted');
+                loadUsers(); // Reload users
+            } else {
+                alert('Error deleting user.');
+            }
+        }
+
+        // Function to update a user
+        async function updateUser(userId, email) {
+            const newPassword = prompt(`Enter a new password for ${email}`);
+            if (newPassword) {
+                const response = await fetch(`/admin/users/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: newPassword })
+                });
+
+                if (response.ok) {
+                    alert('User updated successfully!');
+                    loadUsers(); // Reload users
+                } else {
+                    alert('Error updating user.');
+                }
+            }
+        }
+
+        // Function to log out
+        function logout() {
+            fetch('/admin/logout', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/admin'; // Redirect to login page
+                    }
+                })
+                .catch(error => {
+                    console.error('Error logging out:', error);
+                });
+        }
+
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signature Pad Fix</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+      #loader {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        /* Make sure it's above other elements */
+      }
+
+      .spinner {
+        border: 8px solid #f3f3f3;
+        /* Light grey */
+        border-top: 8px solid #3498db;
+        /* Blue */
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+      }
+
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto; /* Enables horizontal scrolling */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on touch devices */
+        margin-bottom: 20px; /* Adds space below the table */
+      }
+
+      /* Adjust table width and overflow on smaller screens */
+      @media (max-width: 600px) {
+        table {
+          min-width: 600px; /* Make sure the table keeps its minimum size */
+        }
+
+        th,
+        td {
+          padding: 5px;
+          font-size: 12px;
+        }
+
+        button {
+          padding: 5px;
+          font-size: 12px;
+        }
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 800px;
+        padding: 20px;
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        margin-top: 0;
+      }
+
+      .title {
+        font-weight: bold;
+        font-size: 16px;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+      }
+
+      .address-table {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 20px;
+        line-height: 1.5;
+        border-spacing: 0;
+        border-collapse: collapse;
+        border: none;
+      }
+
+      .address-table td {
+        padding: 5px 0;
+        vertical-align: top;
+        border: none;
+      }
+
+      .bold-text {
+        font-weight: bold;
+      }
+
+      .section-title {
+        text-align: left;
+        font-size: 14px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        border: 1px solid black;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        font-size: 14px;
+        border: 1px solid black;
+      }
+
+      input[type="text"] {
+        border: none;
+        font-size: 14px;
+        outline: none;
+        width: 100%;
+      }
+
+      .button-container {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-top: 5px;
+      }
+
+      button {
+        padding: 5px 10px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        font-size: 14px;
+      }
+
+      button.clear-button {
+        background-color: #dc3545;
+      }
+
+      button:hover {
+        background-color: #218838;
+      }
+
+      button.clear-button:hover {
+        background-color: #c82333;
+      }
+
+      button:disabled {
+        background-color: grey;
+        cursor: not-allowed;
+      }
+
+      canvas.signature-pad {
+        width: 150px;
+        height: 50px;
+      }
+
+      img.signature-image {
+        width: 150px;
+        height: 50px;
+      }
+
+      @media (max-width: 600px) {
+        th,
+        td {
+          padding: 5px;
+          font-size: 12px;
+        }
+
+        button {
+          padding: 5px;
+          font-size: 12px;
+        }
+      }
+
+      @media print {
+        .no-pdf {
+          display: none !important;
+        }
+      }
+
+      td {
+        background-color: white;
+      }
+      textarea,
+      input {
+        background-color: white;
+        border: none;
+        outline: none;
+      }
+      .container,
+      .table-responsive,
+      table,
+      td,
+      textarea,
+      input {
+        background-color: white !important;
+      }
+
+      table td {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+
+      textarea {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        height: auto;
+        overflow: hidden; /* important to hide scrollbar and let resizing happen */
+        resize: none; /* prevent manual dragging */
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="title">
+        SENIOR CITIZEN HEALTH BENEFIT (SCHB) SUMMARY PENGESAHAN KEHADIRAN
+        PESAKIT KE KLINIK PANEL UNTUK RAWATAN
+      </div>
+
+      <div class="table-responsive">
+        <table class="address-table">
+          <tr>
+            <td class="bold-text">Bahagian:</td>
+            <td>Miri</td>
+          </tr>
+          <tr>
+            <td class="bold-text">Nama Klinik:</td>
+            <td>Alpro Clinic</td>
+          </tr>
+          <tr>
+            <td class="bold-text">Alamat:</td>
+            <td>
+              GROUND FLOOR, LOT 2468, BLOCK 5 MIRI CONCESSION LAND DISTRICT,
+              BOULEVARD COMMERCIAL CENTRE, JALAN BOULEVARD 2, 98000, MIRI,
+              SARAWAK.
+            </td>
+          </tr>
+          <tr>
+            <td class="bold-text">Bulan/Tahun:</td>
+            <td id="currentDate"></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section-title">Maklumat Pesakit</div>
+      <div class="table-responsive">
+        <table id="patientTable">
+          <thead>
+            <tr>
+              <th>Bil.</th>
+              <th>Nama Pesakit</th>
+              <th>No. Kad Pengenalan</th>
+              <th>Tarikh Rawatan / Masa</th>
+              <th>Kos Rawatan (RM)</th>
+              <th>Tandatangan Pesakit</th>
+              <th class="no-pdf">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Rows will be generated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Keep the content visible and aligned to the left for testing -->
+      <div
+        id="pdfOnlyContent"
+        style="display: none; margin-top: 20px; text-align: left"
+      >
+        <p>
+          Adalah disahkan bahawa pesakit yang dinamakan di atas telah diberi
+          rawatan pesakit luar di Klinik………………………..seperti dinyatakan di atas.
+        </p>
+        <p><b>Disahkan Oleh:</b></p>
+        <p><b>Nama Pegawai Perubatan / Cop Klinik:</b></p>
+        <p><b>Tarikh:</b></p>
+      </div>
+      <div class="no-pdf" style="text-align: center; margin-top: 20px">
+        <button class="no-pdf" id="finalizeButton" onclick="exportAndReset()">
+          Send PDF via Email
+        </button>
+      </div>
+    </div>
+    <div id="loader" style="display: none">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Signature Pad Library -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <!-- Include html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- Include jsPDF -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+    <script>
+      let isAdmin = false;
+      let totalRowsSubmitted = 0;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        fetch("/api/is-admin")
+          .then((response) => response.json())
+          .then((data) => {
+            isAdmin = data.isAdmin;
+
+            // Hide the "Send PDF via Email" button if not admin
+            const finalizeButton = document.getElementById("finalizeButton");
+            if (!isAdmin && finalizeButton) {
+              finalizeButton.style.display = "none";
+            }
+            // Now that we know isAdmin, load rows
+            totalRowsSubmitted =
+              parseInt(localStorage.getItem("totalRowsSubmitted")) || 0;
+            loadRows();
+          })
+          .catch((error) => {
+            console.error("Error checking admin status:", error);
+            isAdmin = false; // default to false on error
+            totalRowsSubmitted =
+              parseInt(localStorage.getItem("totalRowsSubmitted")) || 0;
+            loadRows();
+          });
+
+        // Set current date in "Bulan/Tahun"
+        const currentDateElement = document.getElementById("currentDate");
+        const currentDate = new Date();
+        const month = ("0" + (currentDate.getMonth() + 1)).slice(-2);
+        const year = currentDate.getFullYear();
+        currentDateElement.textContent = `${month}/${year}`;
+      });
+
+      function submitRow(rowIndex) {
+        // rowIndex is from 1 to 15 (UI row index)
+
+        // Retrieve all input fields
+        const name = document.getElementById(`name_${rowIndex}`).value.trim();
+        const identificationNumber = document
+          .getElementById(`id_${rowIndex}`)
+          .value.trim();
+        const treatmentCost = document
+          .getElementById(`cost_${rowIndex}`)
+          .value.trim();
+
+        // Retrieve the signature pad instance
+        const signaturePad = window[`signaturePad_${rowIndex}`];
+        const isSignatureEmpty = signaturePad && signaturePad.isEmpty();
+
+        // Validate fields
+        if (!name || !identificationNumber || !treatmentCost) {
+          alert("All fields are required before submission.");
+          return; // Stop submission if any field is empty
+        }
+
+        if (isSignatureEmpty) {
+          alert("Signature is required before submission.");
+          return; // Stop submission if signature is not provided
+        }
+
+        // Date is already set when the row is enabled
+        const currentDate = document.getElementById(`date_${rowIndex}`).value;
+
+        // Show the loader
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
+
+        // Prepare data to submit
+        const patientSignature = signaturePad.toDataURL(); // Get signature data
+
+        const row = {
+          name,
+          identificationNumber,
+          treatmentDate: currentDate,
+          treatmentCost,
+          patientSignature,
+        };
+
+        // Perform the submission
+        fetch("/api/rows", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(row),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Row saved:", data);
+            totalRowsSubmitted++; // Increment totalRowsSubmitted
+
+            // Save the updated value to local storage
+            localStorage.setItem("totalRowsSubmitted", totalRowsSubmitted);
+
+            // Disable inputs and signature pad for the submitted row
+            disableRow(rowIndex);
+
+            // Initialize the next row if it exists
+            if (rowIndex < 15) {
+              enableRow(rowIndex + 1);
+            }
+
+            // Check if the 15th row has been submitted
+            if (rowIndex === 15) {
+              // Trigger the export and reset process
+              exportAndReset();
+            }
+
+            // Hide the loader
+            loader.style.display = "none";
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            // Hide the loader in case of an error
+            loader.style.display = "none";
+            alert("An error occurred while submitting the data.");
+          });
+      }
+
+      let deleteButtonHTML = "";
+      if (isAdmin) {
+        deleteButtonHTML = `<button class="delete-button" onclick="deleteRow(${i})" ${
+          i > totalRowsSubmitted + 1 ? "disabled" : ""
+        }>Delete Row</button>`;
+      }
+
+      function loadRows() {
+        // Fetch data from the server
+        fetch("/api/rows")
+          .then((response) => response.json())
+          .then((data) => {
+            // Update totalRowsSubmitted based on the data length
+            totalRowsSubmitted = data.length;
+            localStorage.setItem("totalRowsSubmitted", totalRowsSubmitted);
+
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = ""; // Clear previous rows
+
+            let html = "";
+
+            // Generate 15 rows
+            for (let i = 1; i <= 15; i++) {
+              const rowData = data[i - 1]; // Get data for the current row
+              const isRowEnabled = !rowData && i === totalRowsSubmitted + 1;
+
+              // Set date value
+              const dateValue = rowData
+                ? rowData.treatmentDate
+                : isRowEnabled
+                ? new Date().toISOString().split("T")[0]
+                : "";
+
+              // Determine deleteButtonHTML based on isAdmin
+              let deleteButtonHTML = "";
+              if (isAdmin) {
+                deleteButtonHTML = `<button class="delete-button" onclick="deleteRow(${i})" ${
+                  i > totalRowsSubmitted + 1 ? "disabled" : ""
+                }>Delete Row</button>`;
+              }
+
+              html += `
+                            <tr id="row_${i}">
+                                <td>${i}</td>
+                                <td>
+                                    <textarea id="name_${i}" rows="2" style="width: 100%; border: none; font-size: 14px; outline: none; resize: none;" ${
+                !isRowEnabled ? "disabled" : ""
+              }>${rowData ? rowData.name : ""}</textarea>
+                                </td>
+                                <td><input type="text" id="id_${i}" value="${
+                rowData ? rowData.identificationNumber : ""
+              }" ${!isRowEnabled ? "disabled" : ""}></td>
+                                <td><input type="text" id="date_${i}" value="${dateValue}" disabled></td>
+                                <td><input type="text" id="cost_${i}" value="${
+                rowData ? rowData.treatmentCost : ""
+              }" ${!isRowEnabled ? "disabled" : ""}></td>
+                                <td>
+                                    ${
+                                      rowData
+                                        ? `
+                                        <img src="${rowData.patientSignature}" class="signature-image" alt="Signature">
+                                    `
+                                        : isRowEnabled
+                                        ? `
+                                        <canvas id="signaturePad_${i}" class="signature-pad"></canvas>
+                                    `
+                                        : `
+                                        <div style="width: 150px; height: 50px; border: 1px solid #ccc;"></div>
+                                    `
+                                    }
+                                </td>
+                                <td>
+                                    <div class="button-container">
+                                        <button onclick="submitRow(${i})" ${
+                !isRowEnabled ? "disabled" : ""
+              }>Submit</button>
+                                        <button class="clear-button" onclick="clearSignature(${i})" ${
+                !isRowEnabled ? "disabled" : ""
+              }>Clear</button>
+              ${deleteButtonHTML}
+
+
+
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+            }
+
+            // Add static row for total
+            html += `
+                        <tr>
+                            <td colspan="4" style="text-align: center; font-weight: bold; border: 1px solid black;">JUMLAH</td>
+                            <td style="border: 1px solid black;"></td>
+                            <td style="border: 1px solid black;"></td>
+                            <td style="border: 1px solid black;" id="hide"></td>
+                        </tr>
+                    `;
+
+            // Update the table body
+            tableBody.innerHTML = html;
+
+            // Initialize the signature pad for the enabled row
+            const enabledRowIndex = totalRowsSubmitted + 1;
+            if (enabledRowIndex <= 15) {
+              initializeSignaturePad(enabledRowIndex);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching data:", error);
+            alert("An error occurred while loading data.");
+          });
+
+        // Add this check at the end of loadRows():
+        if (!isAdmin) {
+          const finalizeButton = document.getElementById("finalizeButton");
+          if (finalizeButton) {
+            finalizeButton.style.display = "none";
+          }
+        }
+      }
+
+      function initializeSignaturePad(rowIndex) {
+        const canvas = document.getElementById(`signaturePad_${rowIndex}`);
+        if (canvas) {
+          canvas.width = 150;
+          canvas.height = 50;
+
+          // Initialize SignaturePad instance with thinner stroke settings
+          const signaturePad = new SignaturePad(canvas, {
+            minWidth: 0.5, // Minimum width of the stroke
+            maxWidth: 1.5, // Maximum width of the stroke
+          });
+
+          window[`signaturePad_${rowIndex}`] = signaturePad;
+        } else {
+          console.error(`Canvas for row ${rowIndex} not found.`);
+        }
+      }
+
+      function clearSignature(rowIndex) {
+        const signaturePad = window[`signaturePad_${rowIndex}`];
+        if (signaturePad) {
+          signaturePad.clear();
+        }
+      }
+
+      function disableRow(rowIndex) {
+        document.getElementById(`name_${rowIndex}`).disabled = true;
+        document.getElementById(`id_${rowIndex}`).disabled = true;
+        document.getElementById(`cost_${rowIndex}`).disabled = true;
+
+        const buttons = document.querySelectorAll(
+          `#row_${rowIndex} .button-container button`
+        );
+        buttons.forEach((button) => {
+          if (!button.classList.contains("delete-button")) {
+            button.disabled = true;
+          }
+        });
+
+        // Replace the signature pad with the signature image
+        const signaturePad = window[`signaturePad_${rowIndex}`];
+        if (signaturePad) {
+          const dataUrl = signaturePad.toDataURL();
+          const canvas = document.getElementById(`signaturePad_${rowIndex}`);
+          if (canvas) {
+            const img = document.createElement("img");
+            img.src = dataUrl;
+            img.className = "signature-image";
+            img.alt = "Signature";
+            canvas.parentNode.replaceChild(img, canvas);
+          }
+          signaturePad.off();
+          signaturePad.clear();
+          delete window[`signaturePad_${rowIndex}`];
+        }
+      }
+
+      function autoResizeTextarea() {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+      }
+
+      function enableRow(rowIndex) {
+        document.getElementById(`name_${rowIndex}`).disabled = false;
+        document.getElementById(`id_${rowIndex}`).disabled = false;
+        document.getElementById(`cost_${rowIndex}`).disabled = false;
+
+        // Auto-resize the textarea
+        const nameTextarea = document.getElementById(`name_${rowIndex}`);
+        if (nameTextarea) {
+          nameTextarea.style.overflow = "hidden"; // Ensure no scrollbar
+          nameTextarea.addEventListener("input", autoResizeTextarea);
+          autoResizeTextarea.call(nameTextarea); // Adjust height once immediately
+        }
+
+        // Set date field to current date
+        document.getElementById(`date_${rowIndex}`).value = new Date()
+          .toISOString()
+          .split("T")[0];
+
+        // Enable buttons
+        const buttons = document.querySelectorAll(
+          `#row_${rowIndex} .button-container button`
+        );
+        buttons.forEach((button) => (button.disabled = false));
+
+        // Replace the placeholder div or empty cell with the canvas
+        const signatureCell = document.querySelector(
+          `#row_${rowIndex} td:nth-child(6)`
+        );
+        if (signatureCell) {
+          signatureCell.innerHTML = `<canvas id="signaturePad_${rowIndex}" class="signature-pad"></canvas>`;
+        }
+
+        // Initialize the signature pad for this row
+        initializeSignaturePad(rowIndex);
+      }
+
+      function exportAndReset() {
+        const loader = document.getElementById("loader");
+        const pdfOnlyContent = document.getElementById("pdfOnlyContent");
+        const hide = document.getElementById("hide");
+
+        // Hide the loader before capturing the snapshot
+        loader.style.display = "none";
+
+        hide.style.display = "none";
+
+        // Replace textareas with divs for proper wrapping
+        const textareas = document.querySelectorAll("textarea");
+        const textareaReplacements = [];
+        textareas.forEach((tx) => {
+          const textValue = tx.value;
+          const div = document.createElement("div");
+          div.style.whiteSpace = "pre-wrap";
+          div.style.wordWrap = "break-word";
+          div.style.overflowWrap = "break-word";
+          div.textContent = textValue;
+          // Store reference so we can revert if needed
+          textareaReplacements.push({ original: tx, replacement: div });
+          tx.parentNode.replaceChild(div, tx);
+        });
+
+        // Show the content that should only be visible in the PDF
+        pdfOnlyContent.style.display = "block";
+
+        // Hide the "Actions" column before generating the PDF
+        const actionTh = document.querySelector("th.no-pdf");
+        const actionTds = document.querySelectorAll("td:nth-child(7)");
+        if (actionTh) actionTh.style.display = "none";
+        actionTds.forEach((td) => (td.style.display = "none"));
+
+        // Hide all .no-pdf elements before capturing
+        const noPdfElements = document.querySelectorAll(".no-pdf");
+        noPdfElements.forEach((el) => (el.style.display = "none"));
+
+        // Specifically hide the finalize button again, just to be sure
+        const finalizeButton = document.getElementById("finalizeButton");
+        if (finalizeButton) {
+          finalizeButton.style.display = "none";
+        }
+
+        // Capture the current state of the container
+        const container = document.querySelector(".container");
+
+        html2canvas(container, {
+          scale: 2, // Increase scale for better resolution
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          windowWidth: container.scrollWidth,
+          windowHeight: container.scrollHeight,
+          ignoreElements: function (element) {
+            // Exclude the loader from the screenshot
+            return element.id === "loader";
+          },
+        })
+          .then((canvas) => {
+            // Restore the "Actions" column after generating the PDF
+            if (actionTh) actionTh.style.display = "";
+            actionTds.forEach((td) => (td.style.display = ""));
+
+            // Hide the pdfOnlyContent again after capturing
+            pdfOnlyContent.style.display = "none";
+
+            // Restore .no-pdf elements after capture
+            noPdfElements.forEach((el) => (el.style.display = ""));
+
+            // Show the loader while generating the PDF
+            loader.style.display = "block";
+            hide.style.display = "block";
+
+            // Create a new jsPDF instance
+            const pdf = new jspdf.jsPDF("p", "mm", "a4");
+
+            // Calculate dimensions
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = Math.min(
+              pdfWidth / canvasWidth,
+              pdfHeight / canvasHeight
+            );
+            const imgWidth = canvasWidth * ratio;
+            const imgHeight = canvasHeight * ratio;
+            const x = (pdfWidth - imgWidth) / 2;
+            const y = 0; // Adjust if vertical centering is needed
+
+            // Add the screenshot to the PDF
+            const imgData = canvas.toDataURL("image/jpeg", 0.8);
+            pdf.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
+
+            // Convert the PDF to a Blob
+            const pdfBlob = pdf.output("blob");
+
+            // Create a FormData object to send the PDF
+            const formData = new FormData();
+            formData.append("pdf", pdfBlob, "Patient_Data_SCHB.pdf");
+
+            // Send the PDF to the server via fetch
+            fetch("/api/send-email", {
+              method: "POST",
+              body: formData,
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Email sent:", data);
+
+                // After the email is sent, reset the database
+                fetch("/api/reset-rows", {
+                  method: "POST",
+                })
+                  .then((resetResponse) => resetResponse.json())
+                  .then((resetData) => {
+                    console.log("Database reset:", resetData);
+                    // Hide the loader
+                    loader.style.display = "none";
+
+                    // Reset totalRowsSubmitted
+                    totalRowsSubmitted = 0;
+                    localStorage.setItem(
+                      "totalRowsSubmitted",
+                      totalRowsSubmitted
+                    );
+
+                    // Reload the rows
+                    loadRows();
+                  })
+                  .catch((error) => {
+                    console.error("Error resetting database:", error);
+                    loader.style.display = "none";
+                    alert("An error occurred while resetting the database.");
+                  });
+              })
+              .catch((error) => {
+                console.error("Error sending email:", error);
+                loader.style.display = "none";
+                pdfOnlyContent.style.display = "none"; // Ensure it's hidden in case of error
+                alert("An error occurred while sending the email.");
+              });
+          })
+          .catch((error) => {
+            console.error("Error generating PDF:", error);
+            loader.style.display = "none";
+            pdfOnlyContent.style.display = "none"; // Ensure it's hidden in case of error
+            // Restore .no-pdf elements in case of error
+            noPdfElements.forEach((el) => (el.style.display = ""));
+            alert("An error occurred while generating the PDF.");
+          });
+      }
+
+      function deleteRow(rowIndex) {
+        // Show the loader while processing
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
+
+        fetch(`/api/rows/${rowIndex}`, {
+          method: "DELETE",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Row deleted:", data);
+            // After deletion, reload the rows to update the UI and indexing
+            loadRows();
+            loader.style.display = "none";
+          })
+          .catch((error) => {
+            console.error("Error deleting row:", error);
+            loader.style.display = "none";
+            alert("An error occurred while deleting the row.");
+          });
+      }
+    </script>
+  </body>
+</html>
