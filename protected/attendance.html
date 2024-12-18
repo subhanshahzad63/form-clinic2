@@ -713,7 +713,7 @@
         const container = document.querySelector(".container");
 
         html2canvas(container, {
-          scale: 2, // Increase scale for better resolution
+          scale: 1, // Increase scale for better resolution
           useCORS: true,
           allowTaint: true,
           logging: false,
@@ -810,7 +810,9 @@
               });
           })
           .catch((error) => {
-            console.error("Error generating PDF:", error);
+            console.error("html2canvas error:", err);
+
+            // console.error("Error generating PDF:", error);
             loader.style.display = "none";
             pdfOnlyContent.style.display = "none"; // Ensure it's hidden in case of error
             // Restore .no-pdf elements in case of error
