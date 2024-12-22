@@ -10,6 +10,7 @@ const Admin = require("./models/admin"); // Admin model
 const User = require("./models/User"); // User model (ensure the filename is 'user.js')
 const multer = require("multer");
 const MongoStore = require("connect-mongo");
+const jspdf = require("jspdf"); // Ensure this is imported at the top
 
 const storage = multer.memoryStorage();
 
@@ -25,7 +26,7 @@ const PORT = process.env.PORT || 3001;
 
 // MongoDB Connection
 mongoose.connect(
-  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf2222",
+  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -44,7 +45,8 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      mongoUrl: "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf23",
+      mongoUrl:
+        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
     }),
     cookie: {
       maxAge: 30 * 60 * 1000, // 30 minutes
@@ -82,8 +84,8 @@ app.post("/login", async (req, res) => {
       const admin = await Admin.findOne({ email, password });
       if (admin) {
         // If admin found, set both userId and adminId so isUserAuthenticated passes
-        req.session.userId = admin._id;   // Treat admin as a user for attendance access
-        req.session.adminId = admin._id;  // Also mark as admin
+        req.session.userId = admin._id; // Treat admin as a user for attendance access
+        req.session.adminId = admin._id; // Also mark as admin
       } else {
         // No user or admin found
         return res.status(401).json({ message: "Invalid email or password" });
@@ -173,7 +175,7 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
       "amir",
       "jempai",
       "lai",
-      "sunani",                                 
+      "sunani",
     ];
 
     // Validate the selectedStamp
@@ -1049,6 +1051,10 @@ app.get("/admin/dashboard", isAdminAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
 });
 
+app.get("/admin-attendance", isAdminAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "admin-attendance.html"));
+});
+
 // Get all users (Data fetched dynamically for the dashboard)
 app.get("/admin/users-data", isAdminAuthenticated, async (req, res) => {
   try {
@@ -1137,20 +1143,31 @@ const rowSchema = new mongoose.Schema({
   treatmentDate: String,
   treatmentCost: String,
   patientSignature: String,
+  createdAt: { type: Date, default: Date.now }, // Add createdAt field
 });
 
 const Row = mongoose.model("Row", rowSchema);
 
 // Endpoint to get all rows
 app.get("/api/rows", async (req, res) => {
-  const rows = await Row.find({}).sort({ rowNumber: 1 });
-  res.json(rows);
+  try {
+    const rows = await Row.find({}).sort({ createdAt: 1 }); // Sort by createdAt
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching rows:", error);
+    res.status(500).json({ message: "Error fetching rows", error });
+  }
 });
 
 // Endpoint to get the last 15 rows
 app.get("/api/rows/last15", async (req, res) => {
-  const rows = await Row.find({}).sort({ rowNumber: -1 }).limit(15);
-  res.json(rows.reverse()); // Reverse to get ascending order
+  try {
+    const rows = await Row.find({}).sort({ createdAt: -1 }).limit(15);
+    res.json(rows.reverse()); // Reverse to return in ascending order
+  } catch (error) {
+    console.error("Error fetching last 15 rows:", error);
+    res.status(500).json({ message: "Error fetching rows", error });
+  }
 });
 
 // Endpoint to save a row
@@ -1163,53 +1180,89 @@ app.post("/api/rows", async (req, res) => {
     patientSignature,
   } = req.body;
 
-  // Find the current maximum rowNumber
-  const lastRow = await Row.findOne({}).sort({ rowNumber: -1 });
-  const rowNumber = lastRow ? lastRow.rowNumber + 1 : 1;
+  try {
+    // Find the current maximum rowNumber
+    const lastRow = await Row.findOne({}).sort({ rowNumber: -1 });
+    const rowNumber = lastRow ? lastRow.rowNumber + 1 : 1;
 
-  const newRow = new Row({
-    rowNumber,
-    name,
-    identificationNumber,
-    treatmentDate,
-    treatmentCost,
-    patientSignature,
-  });
-  await newRow.save();
-  res.json(newRow);
+    // Create and save the new row
+    const newRow = new Row({
+      rowNumber,
+      name,
+      identificationNumber,
+      treatmentDate,
+      treatmentCost,
+      patientSignature,
+    });
+
+    await newRow.save();
+
+    // Create a backup row using the saved newRow's data
+    const backupRow = new BackupRow({
+      rowNumber: newRow.rowNumber,
+      name: newRow.name,
+      identificationNumber: newRow.identificationNumber,
+      treatmentDate: newRow.treatmentDate,
+      treatmentCost: newRow.treatmentCost,
+      patientSignature: newRow.patientSignature,
+      createdAt: newRow.createdAt, // Use the createdAt from newRow
+    });
+
+    await backupRow.save();
+
+    res.json(newRow);
+  } catch (error) {
+    console.error("Error saving row:", error);
+    res.status(500).json({ message: "Error saving row", error });
+  }
 });
 
 // New endpoint to handle email sending
 app.post("/api/send-email", upload.single("pdf"), async (req, res) => {
   try {
+    // 1) The PDF buffer from the front-end
     const pdfBuffer = req.file.buffer;
     console.log("pdf: ", pdfBuffer);
 
-    // Set up Nodemailer transporter
+    // 2) Find or create the PdfCounter doc
+    let pdfCounter = await PdfCounter.findOne({});
+    if (!pdfCounter) {
+      pdfCounter = new PdfCounter({ sequenceValue: 0 });
+    }
+
+    // 3) Increment the sequence
+    pdfCounter.sequenceValue += 1;
+    await pdfCounter.save();
+
+    // 4) Build the filename from the new global number
+    const pdfNumber = pdfCounter.sequenceValue;
+    const pdfFilename = `PatientData${pdfNumber}.pdf`;
+
+    // 5) Set up Nodemailer transporter
     let transporter = nodemailer.createTransport({
-      service: "gmail", // e.g., Gmail
+      service: "gmail", // or whichever service you're using
       auth: {
         user: "dunstan.alpro@gmail.com",
-        pass: "dute uook aral ptvk", // Use your app password
+        pass: "dute uook aral ptvk", // your app password
       },
     });
 
-    // Set up email data
+    // 6) Set up email data with the new filename
     let mailOptions = {
-      from: "dunstan.alpro@gmail.com", // sender address
-      to: "subhanshahzad2k@gmail.com,malikshahzaib606@gmail.com", // list of receivers
-      subject: "Patient Data SCHB", // Subject line
-      text: "Please find attached the Patient Data SCHB PDF.", // plain text body
+      from: "dunstan.alpro@gmail.com",
+      to: "subhanshahzad2k@gmail.com",
+      subject: "Patient Data SCHB",
+      text: "Please find attached the Patient Data SCHB PDF.",
       attachments: [
         {
-          filename: "Patient_Data_SCHB.pdf",
+          filename: pdfFilename, // e.g. "PatientData1.pdf", "PatientData2.pdf", ...
           content: pdfBuffer,
           contentType: "application/pdf",
         },
       ],
     };
 
-    // Send mail
+    // 7) Send mail
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.log("Error sending email:", error);
@@ -1233,27 +1286,44 @@ const backupRowSchema = new mongoose.Schema({
   patientSignature: String,
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-const BackupRow = mongoose.model("BackupRow", backupRowSchema);
+// pdfCounterSchema.js (or in the same file as other models)
+const pdfCounterSchema = new mongoose.Schema({
+  sequenceValue: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+});
 
+const PdfCounter = mongoose.model("PdfCounter", pdfCounterSchema);
+
+
+const BackupRow = mongoose.model("BackupRow", backupRowSchema);
 
 // Endpoint to reset the database
 app.post("/api/reset-rows", async (req, res) => {
   try {
+    const currentRows = await Row.find({}).sort({ createdAt: 1 }); // Get rows from `Row`
 
-    // Find all current rows
-    const currentRows = await Row.find({}).sort({ rowNumber: 1 });
-    
-    // If there are rows, insert them into BackupRow collection for backup
     if (currentRows.length > 0) {
-      await BackupRow.insertMany(currentRows);
+      // Filter rows to insert only those not already in `BackupRow`
+      for (const row of currentRows) {
+        const exists = await BackupRow.findOne({ createdAt: row.createdAt });
+        if (!exists) {
+          await BackupRow.create(row); // Add only if it doesn't exist
+        }
+      }
     }
-    // Delete all documents from the 'rows' collection
+
+    // Clear the `Row` collection after backup
     await Row.deleteMany({});
-    res.json({ message: "Database reset successful" });
+    res.json({
+      message: "Database reset successful and no duplicates added to BackupRow",
+    });
   } catch (error) {
     console.error("Error resetting database:", error);
     res
@@ -1267,36 +1337,49 @@ app.get("/attendance", isUserAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "attendance.html"));
 });
 
-// Endpoint to delete a row by its rowNumber
-app.delete("/api/rows/:rowNumber", async (req, res) => {
+// server.js
+app.delete("/api/rows/:id", async (req, res) => {
   try {
-    const rowNumberToDelete = parseInt(req.params.rowNumber, 10);
+    const { id } = req.params;
 
-    // Find the row by rowNumber
-    const rowToDelete = await Row.findOne({ rowNumber: rowNumberToDelete });
+    // Find the row by _id
+    
+    const rowToDelete = await BackupRow.findById(id);
     if (!rowToDelete) {
       return res.status(404).json({ message: "Row not found" });
     }
 
-    // Delete the row
-    await Row.deleteOne({ rowNumber: rowNumberToDelete });
+    // Delete from both collections
+    await BackupRow.deleteOne({ _id: id });
+    // await BackupRow.deleteOne({ _id: id });
 
-    // Decrement rowNumber for all rows with rowNumber > rowNumberToDelete
-    const rowsToUpdate = await Row.find({
-      rowNumber: { $gt: rowNumberToDelete },
-    }).sort({ rowNumber: 1 });
-
-    for (const row of rowsToUpdate) {
-      row.rowNumber = row.rowNumber - 1;
-      await row.save();
-    }
-
-    res.json({ message: "Row deleted and rows reordered successfully" });
+    res.json({ message: "Row deleted successfully" });
   } catch (error) {
     console.error("Error deleting row:", error);
     res
       .status(500)
       .json({ message: "An error occurred while deleting the row." });
+  }
+});
+
+app.post("/api/admin/generate-fake-data", async (req, res) => {
+  try {
+    let dummyData = [];
+    for (let i = 1; i <= 30; i++) {
+      dummyData.push({
+        name: `Auto Test ${i}`,
+        identificationNumber: `IC${i}`,
+        treatmentDate: "2024-01-21T10:00:00Z",
+        treatmentCost: 100 + i,
+        patientSignature: "data:image/png;base64,FAKE",
+        createdAt: new Date("2024-12-21T10:00:00Z"),
+      });
+    }
+    const result = await BackupRow.insertMany(dummyData);
+    res.json({ insertedCount: result.insertedCount });
+  } catch (err) {
+    console.error("Error generating data:", err);
+    res.status(500).json({ message: "Could not generate data." });
   }
 });
 
@@ -1308,6 +1391,218 @@ app.get("/api/is-admin", (req, res) => {
   res.json({ isAdmin });
 });
 
+app.get("/api/backup-rows", async (req, res) => {
+  try {
+    const rows = await BackupRow.find({}).sort({ createdAt: 1 }); // Sort by createdAt
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching backup rows:", error);
+    res.status(500).json({ message: "Error fetching rows", error });
+  }
+});
+app.get("/api/admin/sheets", isAdminAuthenticated, async (req, res) => {
+  const { date, page = 1 } = req.query; // Optional date filter and pagination
+  const rowsPerPage = 15;
+
+  console.log("Received request with parameters:", { date, page });
+
+  try {
+    const query = {};
+
+    if (date) {
+      // Validate the date format
+      const utcDate = new Date(date);
+
+      if (isNaN(utcDate.getTime())) {
+        console.error("Invalid date provided:", date);
+        return res
+          .status(400)
+          .json({ message: "Invalid date format provided" });
+      }
+
+      // Calculate start and end of the day in UTC
+      const startOfDay = new Date(
+        Date.UTC(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate(),
+          0,
+          0,
+          0,
+          0
+        )
+      );
+      const endOfDay = new Date(
+        Date.UTC(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate(),
+          23,
+          59,
+          59,
+          999
+        )
+      );
+
+      query.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      };
+
+      console.log("Constructed query for date filter (UTC):", query);
+    } else {
+      console.log("No date filter applied; returning no rows.");
+      return res.json({
+        rows: [],
+        pagination: {
+          currentPage: parseInt(page, 10),
+          totalPages: 0,
+        },
+      });
+    }
+
+    const rows = await BackupRow.find(query)
+      .sort({ createdAt: 1 })
+      .skip((page - 1) * rowsPerPage)
+      .limit(rowsPerPage);
+
+    const totalRows = await BackupRow.countDocuments(query);
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+    console.log("Fetched rows from database:", rows);
+    console.log("Pagination details:", {
+      currentPage: parseInt(page, 10),
+      totalPages,
+      totalRows,
+    });
+
+    res.json({
+      rows,
+      pagination: {
+        currentPage: parseInt(page, 10),
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching sheets:", error);
+    res.status(500).json({ message: "Error fetching sheets", error });
+  }
+});
+
+app.post("/api/admin/send-pdf", isAdminAuthenticated, async (req, res) => {
+  const { sheetId, date } = req.body;
+
+  try {
+    console.log("Received request:", { sheetId, date });
+
+    let rows;
+    if (sheetId) {
+      rows = await BackupRow.find({ sheetId }).sort({ createdAt: 1 });
+    } else if (date) {
+      const startOfDay = new Date(date);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      rows = await BackupRow.find({
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+      }).sort({ createdAt: 1 });
+    } else {
+      return res.status(400).json({ message: "sheetId or date is required" });
+    }
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No rows found for the given sheet or date" });
+    }
+
+    const pdf = new jspdf.jsPDF();
+    rows.forEach((row, index) => {
+      pdf.text(`Row ${index + 1}:`, 10, 10 + index * 10);
+      pdf.text(`Name: ${row.name}`, 10, 20 + index * 10);
+      pdf.text(`ID: ${row.identificationNumber}`, 10, 30 + index * 10);
+      pdf.text(`Date: ${row.treatmentDate}`, 10, 40 + index * 10);
+      pdf.text(`Cost: RM ${row.treatmentCost}`, 10, 50 + index * 10);
+
+      if (index < rows.length - 1) {
+        pdf.addPage();
+      }
+    });
+
+    const pdfBuffer = pdf.output("arraybuffer");
+
+    // Set up Nodemailer transporter
+    let transporter = nodemailer.createTransport({
+      service: "gmail", // e.g., Gmail
+      auth: {
+        user: "dunstan.alpro@gmail.com",
+        pass: "dute uook aral ptvk", // Use your app password
+      },
+    });
+
+    // Set up email data
+    let mailOptions = {
+      from: "dunstan.alpro@gmail.com", // sender address
+      to: "subhanshahzad2k@gmail.com", // list of receivers
+      subject: "Patient Data SCHB", // Subject line
+      text: "Please find attached the Patient Data SCHB PDF.", // plain text body
+      attachments: [
+        {
+          filename: "Patient_Data_SCHB.pdf",
+          content: Buffer.from(pdfBuffer),
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+        return res.status(500).json({ message: "Error sending email", error });
+      }
+      res.json({ message: "Email sent successfully", info });
+    });
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    res.status(500).json({ message: "Error generating PDF", error });
+  }
+});
+
+app.get("/api/admin/backup-rows", isAdminAuthenticated, async (req, res) => {
+  const { page = 1, date } = req.query;
+  const rowsPerPage = 15;
+
+  try {
+    const query = {};
+    if (date) {
+      const startOfDay = new Date(date);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: startOfDay, $lte: endOfDay };
+    }
+
+    const rows = await BackupRow.find(query)
+      .sort({ createdAt: 1 })
+      .skip((page - 1) * rowsPerPage)
+      .limit(rowsPerPage);
+
+    const totalRows = await BackupRow.countDocuments(query);
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+    res.json({
+      rows,
+      pagination: {
+        currentPage: page,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching backup rows:", error);
+    res.status(500).json({ message: "Error fetching rows", error });
+  }
+});
+
+module.exports = { Row, BackupRow };
 
 // Start the server
 app.listen(PORT, () => {

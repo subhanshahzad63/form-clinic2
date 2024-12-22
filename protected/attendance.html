@@ -177,9 +177,10 @@
       }
 
       canvas.signature-pad {
-        width: 150px;
-        height: 50px;
+        width: 100%; /* Full width of the table cell */
+        height: 100px; /* Increased height for more signature space */
       }
+      
 
       img.signature-image {
         width: 150px;
@@ -490,7 +491,7 @@
                             <tr id="row_${i}">
                                 <td>${i}</td>
                                 <td>
-                                    <textarea id="name_${i}" rows="2" style="width: 100%; border: none; font-size: 14px; outline: none; resize: none;" ${
+                                    <textarea id="name_${i}" rows="6" style="width: 100%; border: none; font-size: 14px; outline: none; resize: none; class="name-e" ${
                 !isRowEnabled ? "disabled" : ""
               }>${rowData ? rowData.name : ""}</textarea>
                                 </td>
@@ -667,158 +668,35 @@
 
       function exportAndReset() {
         const loader = document.getElementById("loader");
-        const pdfOnlyContent = document.getElementById("pdfOnlyContent");
-        const hide = document.getElementById("hide");
 
-        // Hide the loader before capturing the snapshot
-        loader.style.display = "none";
+        // Show the loader while resetting the database
+        loader.style.display = "block";
 
-        hide.style.display = "none";
-
-        // Replace textareas with divs for proper wrapping
-        const textareas = document.querySelectorAll("textarea");
-        const textareaReplacements = [];
-        textareas.forEach((tx) => {
-          const textValue = tx.value;
-          const div = document.createElement("div");
-          div.style.whiteSpace = "pre-wrap";
-          div.style.wordWrap = "break-word";
-          div.style.overflowWrap = "break-word";
-          div.textContent = textValue;
-          // Store reference so we can revert if needed
-          textareaReplacements.push({ original: tx, replacement: div });
-          tx.parentNode.replaceChild(div, tx);
-        });
-
-        // Show the content that should only be visible in the PDF
-        pdfOnlyContent.style.display = "block";
-
-        // Hide the "Actions" column before generating the PDF
-        const actionTh = document.querySelector("th.no-pdf");
-        const actionTds = document.querySelectorAll("td:nth-child(7)");
-        if (actionTh) actionTh.style.display = "none";
-        actionTds.forEach((td) => (td.style.display = "none"));
-
-        // Hide all .no-pdf elements before capturing
-        const noPdfElements = document.querySelectorAll(".no-pdf");
-        noPdfElements.forEach((el) => (el.style.display = "none"));
-
-        // Specifically hide the finalize button again, just to be sure
-        const finalizeButton = document.getElementById("finalizeButton");
-        if (finalizeButton) {
-          finalizeButton.style.display = "none";
-        }
-
-        // Capture the current state of the container
-        const container = document.querySelector(".container");
-
-        html2canvas(container, {
-          scale: 1, // Increase scale for better resolution
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          foreignObjectRendering: true,
-          windowWidth: container.scrollWidth,
-          windowHeight: container.scrollHeight,
-          ignoreElements: function (element) {
-            // Exclude the loader from the screenshot
-            return element.id === "loader";
-          },
+        // Reset the database
+        fetch("/api/reset-rows", {
+          method: "POST",
         })
-          .then((canvas) => {
-            // Restore the "Actions" column after generating the PDF
-            if (actionTh) actionTh.style.display = "";
-            actionTds.forEach((td) => (td.style.display = ""));
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Database reset:", data);
 
-            // Hide the pdfOnlyContent again after capturing
-            pdfOnlyContent.style.display = "none";
+            // Reset local variables
+            totalRowsSubmitted = 0;
+            localStorage.setItem("totalRowsSubmitted", totalRowsSubmitted);
 
-            // Restore .no-pdf elements after capture
-            noPdfElements.forEach((el) => (el.style.display = ""));
+            // Reload the rows
+            loadRows();
 
-            // Show the loader while generating the PDF
-            loader.style.display = "block";
-            hide.style.display = "block";
-
-            // Create a new jsPDF instance
-            const pdf = new jspdf.jsPDF("p", "mm", "a4");
-
-            // Calculate dimensions
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            const ratio = Math.min(
-              pdfWidth / canvasWidth,
-              pdfHeight / canvasHeight
-            );
-            const imgWidth = canvasWidth * ratio;
-            const imgHeight = canvasHeight * ratio;
-            const x = (pdfWidth - imgWidth) / 2;
-            const y = 0; // Adjust if vertical centering is needed
-
-            // Add the screenshot to the PDF
-            const imgData = canvas.toDataURL("image/jpeg", 0.8);
-            pdf.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
-
-            // Convert the PDF to a Blob
-            const pdfBlob = pdf.output("blob");
-
-            // Create a FormData object to send the PDF
-            const formData = new FormData();
-            formData.append("pdf", pdfBlob, "Patient_Data_SCHB.pdf");
-
-            // Send the PDF to the server via fetch
-            fetch("/api/send-email", {
-              method: "POST",
-              body: formData,
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("Email sent:", data);
-
-                // After the email is sent, reset the database
-                fetch("/api/reset-rows", {
-                  method: "POST",
-                })
-                  .then((resetResponse) => resetResponse.json())
-                  .then((resetData) => {
-                    console.log("Database reset:", resetData);
-                    // Hide the loader
-                    loader.style.display = "none";
-
-                    // Reset totalRowsSubmitted
-                    totalRowsSubmitted = 0;
-                    localStorage.setItem(
-                      "totalRowsSubmitted",
-                      totalRowsSubmitted
-                    );
-
-                    // Reload the rows
-                    loadRows();
-                  })
-                  .catch((error) => {
-                    console.error("Error resetting database:", error);
-                    loader.style.display = "none";
-                    alert("An error occurred while resetting the database.");
-                  });
-              })
-              .catch((error) => {
-                console.error("Error sending email:", error);
-                loader.style.display = "none";
-                pdfOnlyContent.style.display = "none"; // Ensure it's hidden in case of error
-                alert("An error occurred while sending the email.");
-              });
+            // Hide the loader
+            loader.style.display = "none";
           })
           .catch((error) => {
-            console.error("html2canvas error:", err);
+            console.error("Error resetting database:", error);
 
-            // console.error("Error generating PDF:", error);
+            // Hide the loader in case of an error
             loader.style.display = "none";
-            pdfOnlyContent.style.display = "none"; // Ensure it's hidden in case of error
-            // Restore .no-pdf elements in case of error
-            noPdfElements.forEach((el) => (el.style.display = ""));
-            alert("An error occurred while generating the PDF.");
+
+            alert("An error occurred while resetting the database.");
           });
       }
 
