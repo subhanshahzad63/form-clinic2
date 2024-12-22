@@ -419,14 +419,18 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
       },
     });
 
+    const safeName = applicantName.replace(/[^a-z0-9]/gi, '_');
+
+
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      to: "dunstan.alpro@gmail.com", // Update this if you want to send to user's email
+      // to: "dunstan.alpro@gmail.com", // Update this if you want to send to user's email
+      to: "subhanshahzad2k@gmail.com", // Update this if you want to send to user's email
       subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
         {
-          filename: "document.pdf",
+          filename: safeName + ".pdf",
           path: pdfPath,
         },
       ],
@@ -701,14 +705,18 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
       },
     });
 
+    const safeName = applicantName.replace(/[^a-z0-9]/gi, '_');
+
+
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      to: "dunstan.alpro@gmail.com", // User's email from form data
+      // to: "dunstan.alpro@gmail.com", // User's email from form data
+      to: "subhanshahzad2k@gmail.com", // Update this if you want to send to user's email
       subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
         {
-          filename: "document.pdf",
+          filename: safeName + ".pdf",
           path: pdfPath,
         },
       ],
@@ -984,14 +992,18 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
       },
     });
 
+    const safeName = applicantName.replace(/[^a-z0-9]/gi, '_');
+
+
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      to: "alpro.clinicmetrocity@gmail.com", // User's email from form data
+      // to: "alpro.clinicmetrocity@gmail.com", // User's email from form data
+      to: "subhanshahzad2k@gmail.com", // User's email from form data
       subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
         {
-          filename: "document.pdf",
+          filename: safeName + ".pdf",
           path: pdfPath,
         },
       ],
@@ -1301,7 +1313,6 @@ const pdfCounterSchema = new mongoose.Schema({
 
 const PdfCounter = mongoose.model("PdfCounter", pdfCounterSchema);
 
-
 const BackupRow = mongoose.model("BackupRow", backupRowSchema);
 
 // Endpoint to reset the database
@@ -1343,7 +1354,7 @@ app.delete("/api/rows/:id", async (req, res) => {
     const { id } = req.params;
 
     // Find the row by _id
-    
+
     const rowToDelete = await BackupRow.findById(id);
     if (!rowToDelete) {
       return res.status(404).json({ message: "Row not found" });
@@ -1382,7 +1393,6 @@ app.post("/api/admin/generate-fake-data", async (req, res) => {
     res.status(500).json({ message: "Could not generate data." });
   }
 });
-
 
 // Check if current session belongs to admin
 app.get("/api/is-admin", (req, res) => {
