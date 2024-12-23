@@ -49,7 +49,7 @@ app.use(
         "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
     }),
     cookie: {
-      maxAge: 30 * 60 * 1000, // 30 minutes
+      maxAge: 5 * 24 * 60 * 60 * 1000,
     },
   })
 );

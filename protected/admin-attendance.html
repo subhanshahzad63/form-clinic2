@@ -206,13 +206,18 @@
       }
 
       canvas.signature-pad {
-        width: 100%; /* Full width of the table cell */
-        height: 100px; /* Increased height for more signature space */
+        max-width: 200px;
+        width: 100%; /* Let it shrink if < 200px container */
+        height: 100px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: crosshair;
       }
 
       img.signature-image {
-        width: 100px;
-        height: 50px;
+        max-width: 200px;
+        width: 100%;
+        height: auto; /* keep aspect ratio */
       }
 
       @media (max-width: 600px) {
@@ -322,6 +327,29 @@
       .pdf-controls button:hover {
         background-color: #218838;
       }
+
+      table td {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+
+      /* Force the "Nama Pesakit" column to wrap at a certain width */
+/* Only affect the main patient table */
+      #patientTable {
+        table-layout: auto; /* Keep it flexible */
+        width: 100%;
+      }
+
+      /* Only apply the “max-width” on the second column of #patientTable */
+      #patientTable th:nth-child(2),
+      #patientTable td:nth-child(2) {
+        max-width: 200px;         /* or whichever width you want */
+        white-space: pre-wrap;    /* preserve line breaks */
+        overflow-wrap: anywhere;  /* break up superlong words */
+        word-break: break-all;    /* fallback for older browsers */
+      }
+
     </style>
   </head>
 
@@ -523,7 +551,7 @@
           tableBody.innerHTML += `
       <tr>
         <td>${index + 1}</td>
-        <td class="name-e">${row.name}</td>
+        <td>${row.name}</td>
         <td>${row.identificationNumber}</td>
         <td>${row.treatmentDate}</td>
         <td>${row.treatmentCost}</td>

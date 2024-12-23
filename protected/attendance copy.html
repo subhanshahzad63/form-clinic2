@@ -177,13 +177,17 @@
       }
 
       canvas.signature-pad {
-        width: 150px;
-        height: 50px;
+        width: 200px;      /* Matches the canvas.width in JS */
+        height: 100px;     /* Matches the canvas.height in JS */
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: crosshair; /* Makes it look like a drawing area */
       }
 
+
       img.signature-image {
-        width: 150px;
-        height: 50px;
+        width: 200px;
+        height: 100px;
       }
 
       @media (max-width: 600px) {
@@ -197,6 +201,45 @@
           padding: 5px;
           font-size: 12px;
         }
+      }
+
+      @media print {
+        .no-pdf {
+          display: none !important;
+        }
+      }
+
+      td {
+        background-color: white;
+      }
+      textarea,
+      input {
+        background-color: white;
+        border: none;
+        outline: none;
+      }
+      .container,
+      .table-responsive,
+      table,
+      td,
+      textarea,
+      input {
+        background-color: white !important;
+      }
+
+      table td {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+
+      textarea {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        height: auto;
+        overflow: hidden; /* important to hide scrollbar and let resizing happen */
+        resize: none; /* prevent manual dragging */
       }
     </style>
   </head>
@@ -244,7 +287,7 @@
               <th>Tarikh Rawatan / Masa</th>
               <th>Kos Rawatan (RM)</th>
               <th>Tandatangan Pesakit</th>
-              <th>Actions</th>
+              <th class="no-pdf">Actions</th>
             </tr>
           </thead>
           <tbody id="tableBody">
@@ -266,6 +309,11 @@
         <p><b>Nama Pegawai Perubatan / Cop Klinik:</b></p>
         <p><b>Tarikh:</b></p>
       </div>
+      <!-- <div class="no-pdf" style="text-align: center; margin-top: 20px">
+        <button class="no-pdf" id="finalizeButton" onclick="exportAndReset()">
+          Send PDF via Email
+        </button>
+      </div> -->
     </div>
     <div id="loader" style="display: none">
       <div class="spinner"></div>
@@ -279,38 +327,33 @@
     <!-- Include jsPDF -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
     <script>
+      let isAdmin = false;
+      let totalRowsSubmitted = 0;
+
       document.addEventListener("DOMContentLoaded", () => {
-        fetch("/api/reset-rows", {
-          method: "POST",
-        })
-          .then((resetResponse) => resetResponse.json())
-          .then((resetData) => {
-            console.log("Database reset:", resetData);
-            // Hide the loader
-            loader.style.display = "none";
+        fetch("/api/is-admin")
+          .then((response) => response.json())
+          .then((data) => {
+            isAdmin = data.isAdmin;
 
-            // Reset totalRowsSubmitted
-            totalRowsSubmitted = 0;
-            localStorage.setItem("totalRowsSubmitted", totalRowsSubmitted);
-
-            // Reload the rows
+            // Hide the "Send PDF via Email" button if not admin
+            const finalizeButton = document.getElementById("finalizeButton");
+            if (!isAdmin && finalizeButton) {
+              finalizeButton.style.display = "none";
+            }
+            // Now that we know isAdmin, load rows
+            totalRowsSubmitted =
+              parseInt(localStorage.getItem("totalRowsSubmitted")) || 0;
             loadRows();
           })
           .catch((error) => {
-            console.error("Error resetting database:", error);
-            loader.style.display = "none";
-            alert("An error occurred while resetting the database.");
+            console.error("Error checking admin status:", error);
+            isAdmin = false; // default to false on error
+            totalRowsSubmitted =
+              parseInt(localStorage.getItem("totalRowsSubmitted")) || 0;
+            loadRows();
           });
-
-        // Initialize totalRowsSubmitted
-        totalRowsSubmitted =
-          parseInt(localStorage.getItem("totalRowsSubmitted")) || 0;
-
-        // Load the rows
-        loadRows();
 
         // Set current date in "Bulan/Tahun"
         const currentDateElement = document.getElementById("currentDate");
@@ -319,8 +362,6 @@
         const year = currentDate.getFullYear();
         currentDateElement.textContent = `${month}/${year}`;
       });
-
-      let totalRowsSubmitted = 0;
 
       function submitRow(rowIndex) {
         // rowIndex is from 1 to 15 (UI row index)
@@ -392,7 +433,7 @@
             }
 
             // Check if the 15th row has been submitted
-            if (rowIndex === 1) {
+            if (rowIndex === 15) {
               // Trigger the export and reset process
               exportAndReset();
             }
@@ -406,6 +447,13 @@
             loader.style.display = "none";
             alert("An error occurred while submitting the data.");
           });
+      }
+
+      let deleteButtonHTML = "";
+      if (isAdmin) {
+        deleteButtonHTML = `<button class="delete-button" onclick="deleteRow(${i})" ${
+          i > totalRowsSubmitted + 1 ? "disabled" : ""
+        }>Delete Row</button>`;
       }
 
       function loadRows() {
@@ -434,11 +482,19 @@
                 ? new Date().toISOString().split("T")[0]
                 : "";
 
+              // Determine deleteButtonHTML based on isAdmin
+              let deleteButtonHTML = "";
+              if (isAdmin) {
+                deleteButtonHTML = `<button class="delete-button" onclick="deleteRow(${i})" ${
+                  i > totalRowsSubmitted + 1 ? "disabled" : ""
+                }>Delete Row</button>`;
+              }
+
               html += `
                             <tr id="row_${i}">
                                 <td>${i}</td>
                                 <td>
-                                    <textarea id="name_${i}" rows="2" style="width: 100%; border: none; font-size: 14px; outline: none; resize: none;" ${
+                                    <textarea id="name_${i}" rows="6" style="width: 100%; border: none; font-size: 14px; outline: none; resize: none; class="name-e" ${
                 !isRowEnabled ? "disabled" : ""
               }>${rowData ? rowData.name : ""}</textarea>
                                 </td>
@@ -460,7 +516,7 @@
                                         <canvas id="signaturePad_${i}" class="signature-pad"></canvas>
                                     `
                                         : `
-                                        <div style="width: 150px; height: 50px; border: 1px solid #ccc;"></div>
+                                        <div style="width: 200px; height: 100px; border: 1px solid #ccc;"></div>
                                     `
                                     }
                                 </td>
@@ -472,6 +528,9 @@
                                         <button class="clear-button" onclick="clearSignature(${i})" ${
                 !isRowEnabled ? "disabled" : ""
               }>Clear</button>
+
+
+
                                     </div>
                                 </td>
                             </tr>
@@ -484,7 +543,7 @@
                             <td colspan="4" style="text-align: center; font-weight: bold; border: 1px solid black;">JUMLAH</td>
                             <td style="border: 1px solid black;"></td>
                             <td style="border: 1px solid black;"></td>
-                            <td style="border: 1px solid black;"></td>
+                            <td style="border: 1px solid black;" id="hide"></td>
                         </tr>
                     `;
 
@@ -501,18 +560,26 @@
             console.error("Error fetching data:", error);
             alert("An error occurred while loading data.");
           });
+
+        // Add this check at the end of loadRows():
+        if (!isAdmin) {
+          const finalizeButton = document.getElementById("finalizeButton");
+          if (finalizeButton) {
+            finalizeButton.style.display = "none";
+          }
+        }
       }
 
       function initializeSignaturePad(rowIndex) {
         const canvas = document.getElementById(`signaturePad_${rowIndex}`);
         if (canvas) {
-          canvas.width = 150;
-          canvas.height = 50;
+          canvas.width = 200;
+          canvas.height = 100;
 
           // Initialize SignaturePad instance with thinner stroke settings
           const signaturePad = new SignaturePad(canvas, {
-            minWidth: 0.5, // Minimum width of the stroke
-            maxWidth: 1.5, // Maximum width of the stroke
+            minWidth: 1, // Minimum width of the stroke
+            maxWidth: 2, // Maximum width of the stroke
           });
 
           window[`signaturePad_${rowIndex}`] = signaturePad;
@@ -533,11 +600,14 @@
         document.getElementById(`id_${rowIndex}`).disabled = true;
         document.getElementById(`cost_${rowIndex}`).disabled = true;
 
-        // Disable buttons
         const buttons = document.querySelectorAll(
           `#row_${rowIndex} .button-container button`
         );
-        buttons.forEach((button) => (button.disabled = true));
+        buttons.forEach((button) => {
+          if (!button.classList.contains("delete-button")) {
+            button.disabled = true;
+          }
+        });
 
         // Replace the signature pad with the signature image
         const signaturePad = window[`signaturePad_${rowIndex}`];
@@ -557,10 +627,23 @@
         }
       }
 
+      function autoResizeTextarea() {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+      }
+
       function enableRow(rowIndex) {
         document.getElementById(`name_${rowIndex}`).disabled = false;
         document.getElementById(`id_${rowIndex}`).disabled = false;
         document.getElementById(`cost_${rowIndex}`).disabled = false;
+
+        // Auto-resize the textarea
+        const nameTextarea = document.getElementById(`name_${rowIndex}`);
+        if (nameTextarea) {
+          nameTextarea.style.overflow = "hidden"; // Ensure no scrollbar
+          nameTextarea.addEventListener("input", autoResizeTextarea);
+          autoResizeTextarea.call(nameTextarea); // Adjust height once immediately
+        }
 
         // Set date field to current date
         document.getElementById(`date_${rowIndex}`).value = new Date()
@@ -587,144 +670,57 @@
 
       function exportAndReset() {
         const loader = document.getElementById("loader");
-        const pdfOnlyContent = document.getElementById("pdfOnlyContent");
 
-        // Show the loader while generating the PDF
+        // Show the loader while resetting the database
         loader.style.display = "block";
 
-        // Show the content that should only be visible in the PDF
-        pdfOnlyContent.style.display = "block";
-
-        // **Clone the container to avoid manipulating the original DOM**
-        const container = document.querySelector(".container");
-        const clone = container.cloneNode(true);
-
-        // **Remove the "Actions" column from the clone**
-        const actionsHeader = clone.querySelector(
-          "#patientTable th:nth-child(7)"
-        );
-        if (actionsHeader) {
-          actionsHeader.parentNode.removeChild(actionsHeader);
-        }
-
-        clone.querySelectorAll("#patientTable tr").forEach(function (tr) {
-          const td = tr.querySelector("td:nth-child(7)");
-          if (td) {
-            tr.removeChild(td);
-          }
-        });
-
-        // **Adjust the colspan of the total row if necessary**
-        const totalRow = clone.querySelector("#patientTable tr:last-child");
-        if (totalRow) {
-          const totalCell = totalRow.querySelector("td[colspan]");
-          if (totalCell) {
-            const colspan = parseInt(totalCell.getAttribute("colspan"));
-            totalCell.setAttribute("colspan", colspan - 1); // Decrease colspan by 1
-          }
-        }
-
-        // **Append the clone to a temporary container**
-        const tempDiv = document.createElement("div");
-        tempDiv.style.position = "absolute";
-        tempDiv.style.left = "0px"; // Position it off-screen
-        tempDiv.style.top = "0";
-        tempDiv.appendChild(clone);
-        document.body.appendChild(tempDiv);
-
-        // **Use html2canvas with optimizations**
-        html2canvas(clone, {
-          scale: 1, // Reduce the scale to improve speed
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-          windowWidth: clone.scrollWidth,
-          windowHeight: clone.scrollHeight,
-          // Exclude elements if necessary
+        // Reset the database
+        fetch("/api/reset-rows", {
+          method: "POST",
         })
-          .then((canvas) => {
-            // **Remove the clone from the document**
-            document.body.removeChild(tempDiv);
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Database reset:", data);
 
-            // Hide the pdfOnlyContent again after capturing
-            pdfOnlyContent.style.display = "none";
+            // Reset local variables
+            totalRowsSubmitted = 0;
+            localStorage.setItem("totalRowsSubmitted", totalRowsSubmitted);
 
-            const { jsPDF } = window.jspdf;
+            // Reload the rows
+            loadRows();
 
-            // Create a new jsPDF instance
-            const pdf = new jsPDF("p", "mm", "a4");
-
-            // Calculate the width and height of the PDF page
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-
-            // Get the image data from the canvas
-            const imgData = canvas.toDataURL("image/jpeg", 1.0); // Use JPEG for smaller size
-
-            // Calculate dimensions to fit the page
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            // Ensure the content fits on one page
-            if (imgHeight > pdfHeight) {
-              const scale = pdfHeight / imgHeight;
-              pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth * scale, pdfHeight);
-            } else {
-              pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, imgHeight);
-            }
-
-            // Convert the PDF to a Blob
-            const pdfBlob = pdf.output("blob");
-
-            // Create a FormData object to send the PDF
-            const formData = new FormData();
-            formData.append("pdf", pdfBlob, "Patient_Data_SCHB.pdf");
-
-            // Send the PDF to the server via fetch
-            fetch("/api/send-email", {
-              method: "POST",
-              body: formData,
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("Email sent:", data);
-
-                // Now, after the email is sent, reset the database
-                fetch("/api/reset-rows", {
-                  method: "POST",
-                })
-                  .then((resetResponse) => resetResponse.json())
-                  .then((resetData) => {
-                    console.log("Database reset:", resetData);
-                    // Hide the loader
-                    loader.style.display = "none";
-
-                    // Reset totalRowsSubmitted
-                    totalRowsSubmitted = 0;
-                    localStorage.setItem(
-                      "totalRowsSubmitted",
-                      totalRowsSubmitted
-                    );
-
-                    // Reload the rows
-                    loadRows();
-                  })
-                  .catch((error) => {
-                    console.error("Error resetting database:", error);
-                    loader.style.display = "none";
-                    alert("An error occurred while resetting the database.");
-                  });
-              })
-              .catch((error) => {
-                console.error("Error sending email:", error);
-                loader.style.display = "none";
-                alert("An error occurred while sending the email.");
-              });
+            // Hide the loader
+            loader.style.display = "none";
           })
           .catch((error) => {
-            console.error("Error generating PDF:", error);
+            console.error("Error resetting database:", error);
+
+            // Hide the loader in case of an error
             loader.style.display = "none";
-            alert("An error occurred while generating the PDF.");
+
+            alert("An error occurred while resetting the database.");
+          });
+      }
+
+      function deleteRow(rowIndex) {
+        // Show the loader while processing
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
+
+        fetch(`/api/rows/${rowIndex}`, {
+          method: "DELETE",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Row deleted:", data);
+            // After deletion, reload the rows to update the UI and indexing
+            loadRows();
+            loader.style.display = "none";
+          })
+          .catch((error) => {
+            console.error("Error deleting row:", error);
+            loader.style.display = "none";
+            alert("An error occurred while deleting the row.");
           });
       }
     </script>
