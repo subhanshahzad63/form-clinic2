@@ -177,10 +177,9 @@
       }
 
       canvas.signature-pad {
-        width: 100%; /* Full width of the table cell */
-        height: 100px; /* Increased height for more signature space */
+        width: 150px;
+        height: 50px;
       }
-      
 
       img.signature-image {
         width: 150px;
@@ -570,8 +569,8 @@
       function initializeSignaturePad(rowIndex) {
         const canvas = document.getElementById(`signaturePad_${rowIndex}`);
         if (canvas) {
-          canvas.width = 150;
-          canvas.height = 50;
+          canvas.width = 180;
+          canvas.height = 80;
 
           // Initialize SignaturePad instance with thinner stroke settings
           const signaturePad = new SignaturePad(canvas, {
