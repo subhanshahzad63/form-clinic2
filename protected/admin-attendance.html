@@ -335,7 +335,7 @@
       }
 
       /* Force the "Nama Pesakit" column to wrap at a certain width */
-/* Only affect the main patient table */
+      /* Only affect the main patient table */
       #patientTable {
         table-layout: auto; /* Keep it flexible */
         width: 100%;
@@ -344,12 +344,11 @@
       /* Only apply the “max-width” on the second column of #patientTable */
       #patientTable th:nth-child(2),
       #patientTable td:nth-child(2) {
-        max-width: 200px;         /* or whichever width you want */
-        white-space: pre-wrap;    /* preserve line breaks */
-        overflow-wrap: anywhere;  /* break up superlong words */
-        word-break: break-all;    /* fallback for older browsers */
+        max-width: 200px; /* or whichever width you want */
+        white-space: pre-wrap; /* preserve line breaks */
+        overflow-wrap: anywhere; /* break up superlong words */
+        word-break: break-all; /* fallback for older browsers */
       }
-
     </style>
   </head>
 
@@ -796,8 +795,18 @@
           .then((response) => response.json())
           .then((data) => {
             console.log("Row deleted:", data);
-            // After deletion, reload the rows to update the UI and indexing
-            loadSheets();
+            // Grab the currently selected date from #sheetDate
+            const rawDate = document.getElementById("sheetDate").value;
+
+            // If a date is chosen, reload with that date; otherwise just do a normal load
+            if (rawDate) {
+              const [year, month, day] = rawDate.split("-");
+              const formattedDate = `${year}-${month}-${day}`;
+              loadSheets(1, formattedDate);
+            } else {
+              loadSheets(); // no date filter
+            }
+
             loader.style.display = "none";
           })
           .catch((error) => {
