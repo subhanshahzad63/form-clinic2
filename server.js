@@ -424,8 +424,8 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      // to: "dunstan.alpro@gmail.com", // Update this if you want to send to user's email
-      to: "subhanshahzad2k@gmail.com", // Update this if you want to send to user's email
+      to: "dunstan.alpro@gmail.com", // Update this if you want to send to user's email
+      // to: "subhanshahzad2k@gmail.com", // Update this if you want to send to user's email
       subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
@@ -710,8 +710,8 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      // to: "dunstan.alpro@gmail.com", // User's email from form data
-      to: "subhanshahzad2k@gmail.com", // Update this if you want to send to user's email
+      to: "dunstan.alpro@gmail.com", // User's email from form data
+      // to: "subhanshahzad2k@gmail.com", // Update this if you want to send to user's email
       subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
@@ -997,8 +997,8 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      // to: "alpro.clinicmetrocity@gmail.com", // User's email from form data
-      to: "subhanshahzad2k@gmail.com", // User's email from form data
+      to: "alpro.clinicmetrocity@gmail.com", // User's email from form data
+      // to: "subhanshahzad2k@gmail.com", // User's email from form data
       subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
@@ -1262,7 +1262,7 @@ app.post("/api/send-email", upload.single("pdf"), async (req, res) => {
     // 6) Set up email data with the new filename
     let mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      to: "subhanshahzad2k@gmail.com",
+      to: "dunstan.alpro@gmail.com",
       subject: "Patient Data SCHB",
       text: "Please find attached the Patient Data SCHB PDF.",
       attachments: [
@@ -1553,7 +1553,7 @@ app.post("/api/admin/send-pdf", isAdminAuthenticated, async (req, res) => {
     // Set up email data
     let mailOptions = {
       from: "dunstan.alpro@gmail.com", // sender address
-      to: "subhanshahzad2k@gmail.com", // list of receivers
+      to: "dunstan.alpro@gmail.com", // list of receivers
       subject: "Patient Data SCHB", // Subject line
       text: "Please find attached the Patient Data SCHB PDF.", // plain text body
       attachments: [
