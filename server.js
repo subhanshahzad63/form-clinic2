@@ -22,7 +22,7 @@ const upload = multer({
 });
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3003;
 
 // MongoDB Connection
 mongoose.connect(
