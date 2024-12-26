@@ -471,7 +471,7 @@
               alert("Access denied!");
               window.location.href = "/login"; // Redirect non-admin users
             } else {
-              loadSheets(); // Load sheets for admin
+              initDateAndLoad();
             }
           })
           .catch((error) => {
@@ -485,6 +485,27 @@
         const year = currentDate.getFullYear();
         currentDateElement.textContent = `${month}/${year}`;
       });
+
+      // Separate function so we can do everything clearly
+      function initDateAndLoad() {
+        const sheetDateEl = document.getElementById("sheetDate");
+        if (sheetDateEl) {
+          const now = new Date();
+          const month = ("0" + (now.getMonth() + 1)).slice(-2);
+          const day = ("0" + now.getDate()).slice(-2);
+          const year = now.getFullYear();
+
+          // Set the date picker to today's date
+          sheetDateEl.value = `${year}-${month}-${day}`;
+
+          // Immediately load with that date
+          const formattedDate = `${year}-${month}-${day}`;
+          loadSheets(1, formattedDate);
+        } else {
+          // If there's no #sheetDate, we can fallback
+          loadSheets();
+        }
+      }
 
       function loadSheets(page = 1, date = null) {
         const loader = document.getElementById("loader");
