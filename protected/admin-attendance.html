@@ -264,9 +264,10 @@
       }
 
       textarea {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
+        white-space: pre-line; /* or normal */
+        word-break: normal;
+        overflow-wrap: normal;
+        word-wrap: normal;
         height: auto;
         overflow: hidden; /* important to hide scrollbar and let resizing happen */
         resize: none; /* prevent manual dragging */
@@ -345,9 +346,9 @@
       #patientTable th:nth-child(2),
       #patientTable td:nth-child(2) {
         max-width: 200px; /* or whichever width you want */
-        white-space: pre-wrap; /* preserve line breaks */
-        overflow-wrap: anywhere; /* break up superlong words */
-        word-break: break-all; /* fallback for older browsers */
+        white-space: pre-line; /* preserve line breaks */
+        overflow-wrap: normal; /* break up superlong words */
+        word-break: normal; /* fallback for older browsers */
       }
     </style>
   </head>
@@ -693,10 +694,12 @@
         textareas.forEach((tx) => {
           const textValue = tx.value;
           const div = document.createElement("div");
-          div.style.whiteSpace = "pre-wrap";
-          div.style.wordWrap = "break-word";
-          div.style.overflowWrap = "break-word";
+          div.style.whiteSpace = "pre-line";
+          div.style.wordWrap = "normal";
+          div.style.wordBreak = "normal";
+          div.style.overflowWrap = "normal";
           div.textContent = textValue;
+
 
           // Store reference so we can revert if needed
           textareaReplacements.push({ original: tx, replacement: div });

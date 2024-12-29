@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Admin = require("./models/admin"); // Admin model
 
 // Replace the connection string with your actual MongoDB URI
-const mongoURI = 'mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168';
+const mongoURI = 'mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf109';
 
 async function createAdmin() {
     try {

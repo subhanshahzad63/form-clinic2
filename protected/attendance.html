@@ -177,13 +177,12 @@
       }
 
       canvas.signature-pad {
-        width: 200px;      /* Matches the canvas.width in JS */
-        height: 100px;     /* Matches the canvas.height in JS */
+        width: 200px; /* Matches the canvas.width in JS */
+        height: 100px; /* Matches the canvas.height in JS */
         border: 1px solid #ccc;
         border-radius: 5px;
         cursor: crosshair; /* Makes it look like a drawing area */
       }
-
 
       img.signature-image {
         width: 200px;
@@ -234,9 +233,11 @@
       }
 
       textarea {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
+        /* Revert your old break-word style */
+        white-space: pre-line; /* or normal */
+        word-break: normal;
+        overflow-wrap: normal;
+        word-wrap: normal;
         height: auto;
         overflow: hidden; /* important to hide scrollbar and let resizing happen */
         resize: none; /* prevent manual dragging */

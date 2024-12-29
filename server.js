@@ -26,7 +26,7 @@ const PORT = process.env.PORT || 3003;
 
 // MongoDB Connection
 mongoose.connect(
-  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
+  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf109",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -46,7 +46,7 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl:
-        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
+        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf109",
     }),
     cookie: {
       maxAge: 5 * 24 * 60 * 60 * 1000,
@@ -424,6 +424,7 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
+      // to: "subhanshahzad2k@gmail.com", // list of receivers
       to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com", // Update this if you want to send to user's email
       // to: "", // Update this if you want to send to user's email
       subject: "Your PDF Document",
@@ -1554,6 +1555,7 @@ app.post("/api/admin/send-pdf", isAdminAuthenticated, async (req, res) => {
     let mailOptions = {
       from: "dunstan.alpro@gmail.com", // sender address
       to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com", // list of receivers
+      // to: "subhanshahzad2k@gmail.com", // list of receivers
       subject: "Patient Data SCHB", // Subject line
       text: "Please find attached the Patient Data SCHB PDF.", // plain text body
       attachments: [
