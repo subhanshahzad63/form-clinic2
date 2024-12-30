@@ -429,6 +429,8 @@
           <button id="sendPdfButton" class="no-pdf" onclick="exportAndEmail()">
             Send PDF for Selected Sheet
           </button>
+
+          
         </div>
       </div>
 
@@ -679,6 +681,7 @@
         }
       }
 
+      
       function exportAndEmail() {
         const loader = document.getElementById("loader");
         const pdfOnlyContent = document.getElementById("pdfOnlyContent");
@@ -699,7 +702,6 @@
           div.style.wordBreak = "normal";
           div.style.overflowWrap = "normal";
           div.textContent = textValue;
-
 
           // Store reference so we can revert if needed
           textareaReplacements.push({ original: tx, replacement: div });

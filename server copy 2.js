@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3001;
 
 // MongoDB Connection
 mongoose.connect(
-  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
+  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf109",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -47,7 +47,7 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl:
-        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
+        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf109",
     }),
     cookie: {
       maxAge: 5 * 24 * 60 * 60 * 1000,
@@ -427,7 +427,7 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
       // to: "subhanshahzad2k@gmail.com", // list of receivers
       to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com", // Update this if you want to send to user's email
       // to: "", // Update this if you want to send to user's email
-      subject: "schb application",
+      subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
         {
@@ -712,7 +712,7 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
       from: "dunstan.alpro@gmail.com",
       to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com", // User's email from form data
       // to: "", // Update this if you want to send to user's email
-      subject: "schb application",
+      subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
         {
@@ -998,7 +998,7 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
       from: "dunstan.alpro@gmail.com",
       to: "alpro.clinicmetrocity@gmail.com,amc.clinicmiri@gmail.com", // User's email from form data
       // to: "", // User's email from form data
-      subject: "schb application",
+      subject: "Your PDF Document",
       text: "Please find your generated PDF document attached.",
       attachments: [
         {
@@ -1062,13 +1062,8 @@ app.get("/admin/dashboard", isAdminAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin-dashboard.html"));
 });
 
-app.get("/admin-attendance-monthly", isAdminAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "admin-attendance-monthly.html"));
-});
-
-
-app.get("/admin-attendance-daily", isAdminAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, "protected", "admin-attendance-daily.html"));
+app.get("/admin-attendance", isAdminAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "admin-attendance.html"));
 });
 
 // Get all users (Data fetched dynamically for the dashboard)
@@ -1266,8 +1261,8 @@ app.post("/api/send-email", upload.single("pdf"), async (req, res) => {
     // 6) Set up email data with the new filename
     let mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      // to: "subhanshahzad2k@gmail.com",
-      to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com",
+      to: "subhanshahzad2k@gmail.com",
+      // to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com",
       subject: "Patient Data SCHB",
       text: "Please find attached the Patient Data SCHB PDF.",
       attachments: [
@@ -1415,87 +1410,6 @@ app.get("/api/backup-rows", async (req, res) => {
     res.status(500).json({ message: "Error fetching rows", error });
   }
 });
-// GET /api/admin/sheets?year=2024&month=12&page=1
-app.get("/api/admin/msheets", isAdminAuthenticated, async (req, res) => {
-  const { year, month, page = 1 } = req.query;
-  const rowsPerPage = 15;
-
-  console.log("Received request with parameters:", { year, month, page });
-
-  try {
-    const query = {};
-
-    if (year && month) {
-      // Convert year/month to numeric
-      const numericYear = parseInt(year, 10);
-      const numericMonth = parseInt(month, 10);
-
-      if (!numericYear || !numericMonth || numericMonth < 1 || numericMonth > 12) {
-        console.error("Invalid year/month provided:", { year, month });
-        return res
-          .status(400)
-          .json({ message: "Invalid year or month format provided" });
-      }
-
-      // 1) Calculate first day of that month (UTC-based)
-      // e.g. new Date(2024, 11, 1) => Dec 1, 2024 (because month is 0-index)
-      const startOfMonth = new Date(Date.UTC(numericYear, numericMonth - 1, 1, 0, 0, 0, 0));
-
-      // 2) Calculate end-of-month
-      //    A quick approach: 
-      //      - create date for next month, day=1, minus 1ms
-      const startOfNextMonth = new Date(Date.UTC(numericYear, numericMonth, 1, 0, 0, 0, 0));
-      const endOfMonth = new Date(startOfNextMonth.getTime() - 1); 
-      // Or you can use a library like date-fns `endOfMonth(startOfMonth)`
-
-      console.log("startOfMonth =>", startOfMonth.toISOString());
-      console.log("endOfMonth =>", endOfMonth.toISOString());
-
-      // 3) Build the query
-      query.createdAt = {
-        $gte: startOfMonth, 
-        $lte: endOfMonth,
-      };
-    } else {
-      console.log("No year/month provided; returning no rows.");
-      return res.json({
-        rows: [],
-        pagination: {
-          currentPage: parseInt(page, 10),
-          totalPages: 0,
-        },
-      });
-    }
-
-    // 4) With that query, do pagination
-    const rows = await BackupRow.find(query)
-      .sort({ createdAt: 1 })
-      .skip((page - 1) * rowsPerPage)
-      .limit(rowsPerPage);
-
-    const totalRows = await BackupRow.countDocuments(query);
-    const totalPages = Math.ceil(totalRows / rowsPerPage);
-
-    console.log("Fetched rows from database:", rows);
-    console.log("Pagination details:", {
-      currentPage: parseInt(page, 10),
-      totalPages,
-      totalRows,
-    });
-
-    res.json({
-      rows,
-      pagination: {
-        currentPage: parseInt(page, 10),
-        totalPages,
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching sheets (month-based):", error);
-    res.status(500).json({ message: "Error fetching month-based sheets", error });
-  }
-});
-
 app.get("/api/admin/sheets", isAdminAuthenticated, async (req, res) => {
   const { date, page = 1 } = req.query; // Optional date filter and pagination
   const rowsPerPage = 15;
@@ -1584,7 +1498,6 @@ app.get("/api/admin/sheets", isAdminAuthenticated, async (req, res) => {
     res.status(500).json({ message: "Error fetching sheets", error });
   }
 });
-
 
 app.post("/api/admin/send-pdf", isAdminAuthenticated, async (req, res) => {
   const { sheetId, date } = req.body;
