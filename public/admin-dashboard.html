@@ -149,6 +149,12 @@
         <button onclick="redirectToSheetManagementDaily()">Manage Sheets (By Date)</button>
       </div>
 
+      <div class="btn-wrapper">
+        <!-- "Reset Attendance sheet" button -->
+        <button onclick="resetSheet()">Reset Attendance Sheet</button>
+      </div>
+      
+
       <div class="user-form">
         <h3>Create User</h3>
         <form id="createUserForm">
@@ -285,6 +291,26 @@
 
       function redirectToSheetManagementDaily() {
         window.location.href = "/admin-attendance-daily";
+      }
+
+      // New function: reset attendance
+      async function resetSheet() {
+        if (!confirm("Are you sure you want to RESET the attendance sheet? This will clear all rows in the attendance table.")) {
+          return; // user canceled
+        }
+        try {
+          const response = await fetch("/api/reset-rows", { method: "POST" });
+          if (response.ok) {
+            const data = await response.json();
+            alert("Attendance sheet reset:\n" + data.message);
+          } else {
+            const errData = await response.json();
+            alert("Error resetting attendance:\n" + (errData.message || response.status));
+          }
+        } catch (err) {
+          console.error("Error resetting attendance:", err);
+          alert("An error occurred while resetting attendance.");
+        }
       }
     </script>
   </body>

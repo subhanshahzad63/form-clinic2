@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3001;
 
 // MongoDB Connection
 mongoose.connect(
-  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
+  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf1234",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -47,7 +47,7 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl:
-        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
+        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf1234",
     }),
     cookie: {
       maxAge: 5 * 24 * 60 * 60 * 1000,
@@ -191,8 +191,8 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
         base64String.slice(-2) === "=="
           ? 2
           : base64String.slice(-1) === "="
-          ? 1
-          : 0;
+            ? 1
+            : 0;
       return (base64String.length * 3) / 4 - padding;
     };
 
@@ -509,8 +509,8 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
         base64String.slice(-2) === "=="
           ? 2
           : base64String.slice(-1) === "="
-          ? 1
-          : 0;
+            ? 1
+            : 0;
       return (base64String.length * 3) / 4 - padding;
     };
 
@@ -710,37 +710,36 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
-      to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com", // User's email from form data
-      // to: "", // Update this if you want to send to user's email
+      to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com,QMRBV1@alpropharmacy.com,QMRJP1@alpropharmacy.com,QMRMJ1@alpropharmacy.com,qmrlb1.alphac@gmail.com,QMRPJ1@alpropharmacy.com,QMRPL1@alpropharmacy.com,qkc3m1@alpropharmacy.com,qkc7m1@alpropharmacy.com,QKCBK1@alpropharmacy.com,QKCHS1@alpropharmacy.com,QKCMC1@alpropharmacy.com,qkcmj1@alpropharmacy.com,QKCNB1@alpropharmacy.com,qkcp11@alpropharmacy.com,QKCPS1@alpropharmacy.com,QKCSR1@alpropharmacy.com,QKCST1@alpropharmacy.com,qkctj1@alpropharmacy.com,qbtj51@alpropharmacy.com,QBTJK1@alpropharmacy.com,QBTMJ1@alpropharmacy.com,QBTPC1@alpropharmacy.com,QBTSB1@alpropharmacy.com,QSAJHF@alpropharmacy.com,QSBDT1@alpropharmacy.com,QSBFL1@alpropharmacy.com,QSBJC1@alpropharmacy.com,QSBPJ1@alpropharmacy.com,QSBPW1@alpropharmacy.com,QSKAR1@alpropharmacy.com,QSRST1@alpropharmacy.com",
       subject: "schb application",
       text: "Please find your generated PDF document attached.",
-      attachments: [
-        {
-          filename: safeName + ".pdf",
-          path: pdfPath,
-        },
-      ],
+        attachments: [
+          {
+            filename: safeName + ".pdf",
+            path: pdfPath,
+          },
+        ],
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Error sending email:", error);
-        return res.status(500).send("Error sending email");
-      }
-      console.log("Email sent:", info.response);
-      res.json({
-        message: "PDF generated, saved, and emailed",
-        link: "/download-server-pdf",
-      });
-    });
-  } catch (error) {
-    console.error("Error generating PDF:", error.message, error.stack);
-    res.status(500).send("Error generating PDF");
-  } finally {
-    if (browser) {
-      await browser.close(); // Ensure browser is always closed
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error("Error sending email:", error);
+      return res.status(500).send("Error sending email");
     }
+    console.log("Email sent:", info.response);
+    res.json({
+      message: "PDF generated, saved, and emailed",
+      link: "/download-server-pdf",
+    });
+  });
+} catch (error) {
+  console.error("Error generating PDF:", error.message, error.stack);
+  res.status(500).send("Error generating PDF");
+} finally {
+  if (browser) {
+    await browser.close(); // Ensure browser is always closed
   }
+}
 });
 
 //file 3 : Kuching
@@ -794,8 +793,8 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
         base64String.slice(-2) === "=="
           ? 2
           : base64String.slice(-1) === "="
-          ? 1
-          : 0;
+            ? 1
+            : 0;
       return (base64String.length * 3) / 4 - padding;
     };
 
@@ -1215,6 +1214,7 @@ app.post("/api/rows", async (req, res) => {
 
     // Create a backup row using the saved newRow's data
     const backupRow = new BackupRow({
+      originalRowId: newRow._id, // store a direct reference
       rowNumber: newRow.rowNumber,
       name: newRow.name,
       identificationNumber: newRow.identificationNumber,
@@ -1295,6 +1295,10 @@ app.post("/api/send-email", upload.single("pdf"), async (req, res) => {
 });
 
 const backupRowSchema = new mongoose.Schema({
+  originalRowId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Row", // optional if you want Mongoose to treat it as a real "ref"
+  },
   rowNumber: Number,
   name: String,
   identificationNumber: String,
@@ -1358,23 +1362,49 @@ app.delete("/api/rows/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the row by _id
-
-    const rowToDelete = await BackupRow.findById(id);
-    if (!rowToDelete) {
-      return res.status(404).json({ message: "Row not found" });
+    // 1) Find the row in BackupRow by its _id
+    const backupDoc = await BackupRow.findById(id);
+    if (!backupDoc) {
+      return res.status(404).json({ message: "Backup row not found" });
     }
 
-    // Delete from both collections
+    // 2) Delete from BackupRow
     await BackupRow.deleteOne({ _id: id });
-    // await BackupRow.deleteOne({ _id: id });
 
-    res.json({ message: "Row deleted successfully" });
+    // 3) If new data => backupDoc.originalRowId is set
+    if (backupDoc.originalRowId) {
+      // Just remove from Row using that _id
+      await Row.deleteOne({ _id: backupDoc.originalRowId });
+      return res.json({ message: "Row deleted from both Row & BackupRow" });
+    }
+
+    // 4) If older data => fallback match in Row. 
+    //    For instance, match on rowNumber + createdAt (or more fields).
+    //    This is not 100% foolproof, but good enough if rowNumber+createdAt are unique.
+    const fallbackDoc = await Row.findOne({
+      rowNumber: backupDoc.rowNumber,
+      createdAt: backupDoc.createdAt,
+      name: backupDoc.name, // optionally
+      // identificationNumber: backupDoc.identificationNumber, // optionally
+    });
+
+    if (fallbackDoc) {
+      await Row.deleteOne({ _id: fallbackDoc._id });
+      return res.json({
+        message: "Row deleted via fallback match from both Row & BackupRow",
+      });
+    } else {
+      // Not found in Row (maybe it was never there or was already reset)
+      return res.json({
+        message:
+          "Row deleted from BackupRow. No matching doc found in Row (fallback).",
+      });
+    }
   } catch (error) {
     console.error("Error deleting row:", error);
     res
       .status(500)
-      .json({ message: "An error occurred while deleting the row." });
+      .json({ message: "An error occurred while deleting the row.", error });
   }
 });
 
@@ -1445,7 +1475,7 @@ app.get("/api/admin/msheets", isAdminAuthenticated, async (req, res) => {
       //    A quick approach: 
       //      - create date for next month, day=1, minus 1ms
       const startOfNextMonth = new Date(Date.UTC(numericYear, numericMonth, 1, 0, 0, 0, 0));
-      const endOfMonth = new Date(startOfNextMonth.getTime() - 1); 
+      const endOfMonth = new Date(startOfNextMonth.getTime() - 1);
       // Or you can use a library like date-fns `endOfMonth(startOfMonth)`
 
       console.log("startOfMonth =>", startOfMonth.toISOString());
@@ -1453,7 +1483,7 @@ app.get("/api/admin/msheets", isAdminAuthenticated, async (req, res) => {
 
       // 3) Build the query
       query.createdAt = {
-        $gte: startOfMonth, 
+        $gte: startOfMonth,
         $lte: endOfMonth,
       };
     } else {
