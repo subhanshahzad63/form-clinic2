@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3001;
 
 // MongoDB Connection
 mongoose.connect(
-  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf1234",
+  "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -47,7 +47,7 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl:
-        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf1234",
+        "mongodb+srv://seekho:admin@cluster0.eqodz2h.mongodb.net/pdf168",
     }),
     cookie: {
       maxAge: 5 * 24 * 60 * 60 * 1000,
