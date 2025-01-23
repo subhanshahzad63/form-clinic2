@@ -416,7 +416,7 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
       service: "gmail",
       auth: {
         user: "dunstan.alpro@gmail.com",
-        pass: "dute uook aral ptvk", // Use your app password
+        pass: "qufj jazt fafb mypw", // Use your app password
       },
     });
 
@@ -702,7 +702,7 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
       service: "gmail",
       auth: {
         user: "dunstan.alpro@gmail.com", // Replace with your email
-        pass: "dute uook aral ptvk", // Use your app password
+        pass: "qufj jazt fafb mypw", // Use your app password
       },
     });
 
@@ -987,7 +987,7 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
       service: "gmail",
       auth: {
         user: "dunstan.alpro@gmail.com",
-        pass: "dute uook aral ptvk", // Use your app password
+        pass: "qufj jazt fafb mypw", // Use your app password
       },
     });
 
@@ -1259,7 +1259,7 @@ app.post("/api/send-email", upload.single("pdf"), async (req, res) => {
       service: "gmail", // or whichever service you're using
       auth: {
         user: "dunstan.alpro@gmail.com",
-        pass: "dute uook aral ptvk", // your app password
+        pass: "qufj jazt fafb mypw", // your app password
       },
     });
 
@@ -1663,7 +1663,7 @@ app.post("/api/admin/send-pdf", isAdminAuthenticated, async (req, res) => {
       service: "gmail", // e.g., Gmail
       auth: {
         user: "dunstan.alpro@gmail.com",
-        pass: "dute uook aral ptvk", // Use your app password
+        pass: "qufj jazt fafb mypw", // Use your app password
       },
     });
 
