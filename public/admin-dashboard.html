@@ -2,162 +2,218 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Admin Dashboard</title>
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-    />
     <style>
+      /* Same global styling and gradient as leaderboard */
       body {
-        font-family: "Roboto", sans-serif;
-        background-color: #f0f2f5;
         margin: 0;
         padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(120deg, #f0f4ff, #d9e8ff);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
       }
 
-      .container {
-        max-width: 800px;
-        margin: 50px auto;
-        padding: 20px;
+      .dashboard-container {
+        width: 95%;
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px 30px;
         background-color: #ffffff;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.5s ease;
+        position: relative;
       }
 
-      h2 {
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      h1 {
         text-align: center;
+        margin-bottom: 30px;
         color: #333;
-        margin-bottom: 20px;
+        font-size: 1.8rem;
+        letter-spacing: 0.5px;
       }
 
+      /* Logout button in top-right corner */
       .logout-btn {
         position: absolute;
         top: 20px;
         right: 20px;
-        padding: 10px 20px;
+        padding: 10px 18px;
         background-color: #d9534f;
         color: #ffffff;
         border: none;
         border-radius: 5px;
         cursor: pointer;
-        font-weight: bold;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .logout-btn:hover {
+        background-color: #c9302c;
       }
 
-      .user-form {
+      /* Button group styling for the main actions */
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
         margin-bottom: 30px;
       }
 
-      input {
-        width: calc(50% - 20px);
+      .button-group button {
+        background-color: #3949ab;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: background-color 0.3s ease;
+      }
+
+      .button-group button:hover {
+        background-color: #303f9f;
+      }
+
+      /* User form & table section */
+      .sub-section {
+        margin-top: 30px;
+      }
+
+      .sub-section h2 {
+        font-size: 1.3rem;
+        color: #333;
+        margin-bottom: 20px;
+        text-align: left;
+      }
+
+      .user-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .user-form input {
+        flex: 1;
+        min-width: 220px;
         padding: 10px;
-        margin: 10px;
         border: 1px solid #ddd;
         border-radius: 5px;
         outline: none;
+        font-size: 1rem;
       }
-
-      button {
-        padding: 10px 20px;
-        background-color: #007bff;
-        color: white;
+      .user-form button {
+        background-color: #3949ab;
+        color: #fff;
         border: none;
         border-radius: 5px;
+        padding: 10px 16px;
         cursor: pointer;
-        font-weight: bold;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+      }
+      .user-form button:hover {
+        background-color: #303f9f;
       }
 
-      button:hover {
-        background-color: #0056b3;
+      /* Table styling similar to the leaderboard */
+      .table-container {
+        width: 100%;
+        overflow-x: auto;
       }
 
-      #usersTable {
+      table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 20px;
+        min-width: 600px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
       }
 
-      #usersTable th,
-      #usersTable td {
-        padding: 15px;
+      thead tr {
+        background-color: #3949ab;
+        color: #fff;
+      }
+
+      th, td {
+        padding: 14px 16px;
         text-align: left;
         border-bottom: 1px solid #ddd;
+        font-size: 0.95rem;
       }
 
-      #usersTable th {
-        background-color: #007bff;
-        color: #ffffff;
-        text-transform: uppercase;
+      tbody tr:hover {
+        background-color: #f0f3ff;
       }
 
+      /* Action buttons for each user row */
       .action-btn {
         margin-right: 5px;
-        padding: 5px 10px;
+        padding: 8px 14px;
         background-color: #f0ad4e;
         color: white;
         border: none;
         border-radius: 5px;
         cursor: pointer;
-        font-weight: bold;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
       }
-
       .action-btn.delete {
         background-color: #d9534f;
       }
-
       .action-btn:hover {
-        opacity: 0.8;
+        opacity: 0.85;
       }
 
-      .btn-wrapper {
-        text-align: center;
-      }
-
-      .btn-wrapper {
-        margin-top: 20px;
-        text-align: center;
-      }
-
-      .btn-wrapper button {
-        padding: 10px 20px;
-        background-color: #28a745; /* Green */
-        color: white;
-        border: none;
-        border-radius: 5px;
-        font-weight: bold;
-        cursor: pointer;
-        font-size: 16px;
-        transition: background-color 0.3s ease;
-      }
-
-      .btn-wrapper button:hover {
-        background-color: #218838;
+      /* Responsive */
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 1.4rem;
+        }
+        .button-group button {
+          font-size: 0.8rem;
+          padding: 10px 14px;
+        }
+        .user-form input {
+          min-width: 100%;
+        }
       }
     </style>
   </head>
-
   <body>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+    <div class="dashboard-container">
+      <button class="logout-btn" onclick="logout()">Logout</button>
+      <h1>Admin Dashboard</h1>
 
-    <div class="container">
-      <h2>Admin Dashboard</h2>
-
-      <div class="btn-wrapper">
+      <!-- Button group for the main actions -->
+      <div class="button-group">
         <button onclick="redirectToSheetManagement()">Manage Sheets (By Month)</button>
-      </div>
-      <div class="btn-wrapper">
         <button onclick="redirectToSheetManagementDaily()">Manage Sheets (By Date)</button>
-      </div>
-
-      <div class="btn-wrapper">
-        <!-- "Reset Attendance sheet" button -->
         <button onclick="resetSheet()">Reset Attendance Sheet</button>
+        <button onclick="gotoFormLeaderboard()">Form Submissions Leaderboard</button>
+        <button onclick="gotoAttendanceLeaderboard()">Attendance Leaderboard</button>
       </div>
-      
 
-      <div class="user-form">
-        <h3>Create User</h3>
-        <form id="createUserForm">
+      <!-- User Management Section -->
+      <div class="sub-section">
+        <h2>Create User</h2>
+        <form id="createUserForm" class="user-form">
           <input
             type="email"
             id="userEmail"
@@ -174,31 +230,38 @@
         </form>
       </div>
 
-      <div id="usersList">
-        <h3>Users List</h3>
-        <table id="usersTable">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Users will be populated here -->
-          </tbody>
-        </table>
+      <div class="sub-section">
+        <h2>Users List</h2>
+        <div class="table-container">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <script>
-      document
-        .getElementById("createUserForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
+      // On page load, fetch the list of users
+      document.addEventListener("DOMContentLoaded", () => {
+        loadUsers();
+      });
 
-          const email = document.getElementById("userEmail").value;
-          const password = document.getElementById("userPassword").value;
+      // Create new user
+      document.getElementById("createUserForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
 
+        const email = document.getElementById("userEmail").value;
+        const password = document.getElementById("userPassword").value;
+
+        try {
           const response = await fetch("/admin/users", {
             method: "POST",
             headers: {
@@ -210,48 +273,70 @@
           if (response.ok) {
             alert("User created successfully!");
             loadUsers(); // Reload users after creating a new user
+            document.getElementById("userEmail").value = "";
+            document.getElementById("userPassword").value = "";
           } else {
             alert("Error creating user.");
           }
-        });
+        } catch (err) {
+          alert("Error creating user.");
+          console.error(err);
+        }
+      });
 
-      // Function to load all users
+      // Load all users
       async function loadUsers() {
-        const response = await fetch("/admin/users-data");
-        const users = await response.json();
-        const usersTableBody = document.querySelector("#usersTable tbody");
-        usersTableBody.innerHTML = ""; // Clear existing users
+        try {
+          const response = await fetch("/admin/users-data");
+          if (!response.ok) throw new Error("Failed to fetch users.");
+          const users = await response.json();
 
-        users.forEach((user) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-                    <td>${user.email}</td>
-                    <td>
-                        <button class="action-btn delete" onclick="deleteUser('${user._id}')">Delete</button>
-                        <button class="action-btn" onclick="updateUser('${user._id}', '${user.email}')">Update</button>
-                    </td>
-                `;
-          usersTableBody.appendChild(row);
-        });
-      }
+          const usersTableBody = document.querySelector("#usersTable tbody");
+          usersTableBody.innerHTML = ""; // Clear existing rows
 
-      // Function to delete a user
-      async function deleteUser(userId) {
-        const response = await fetch(`/admin/users/${userId}`, {
-          method: "DELETE",
-        });
-        if (response.ok) {
-          alert("User deleted");
-          loadUsers(); // Reload users
-        } else {
-          alert("Error deleting user.");
+          users.forEach((user) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${user.email}</td>
+              <td>
+                <button class="action-btn delete" onclick="deleteUser('${user._id}')">Delete</button>
+                <button class="action-btn" onclick="updateUser('${user._id}', '${user.email}')">Update</button>
+              </td>
+            `;
+            usersTableBody.appendChild(row);
+          });
+        } catch (error) {
+          console.error("Error loading users:", error);
         }
       }
 
-      // Function to update a user
+      // Delete user
+      async function deleteUser(userId) {
+        if (!confirm("Are you sure you want to delete this user?")) {
+          return;
+        }
+        try {
+          const response = await fetch(`/admin/users/${userId}`, {
+            method: "DELETE",
+          });
+          if (response.ok) {
+            alert("User deleted");
+            loadUsers();
+          } else {
+            alert("Error deleting user.");
+          }
+        } catch (err) {
+          alert("Error deleting user.");
+          console.error(err);
+        }
+      }
+
+      // Update user (password)
       async function updateUser(userId, email) {
         const newPassword = prompt(`Enter a new password for ${email}`);
-        if (newPassword) {
+        if (!newPassword) return;
+
+        try {
           const response = await fetch(`/admin/users/${userId}`, {
             method: "PUT",
             headers: {
@@ -262,19 +347,22 @@
 
           if (response.ok) {
             alert("User updated successfully!");
-            loadUsers(); // Reload users
+            loadUsers();
           } else {
             alert("Error updating user.");
           }
+        } catch (err) {
+          alert("Error updating user.");
+          console.error(err);
         }
       }
 
-      // Function to log out
+      // Logout
       function logout() {
         fetch("/admin/logout", { method: "POST" })
           .then((response) => {
             if (response.ok) {
-              window.location.href = "/admin"; // Redirect to login page
+              window.location.href = "/admin"; // Adjust if your login page is different
             }
           })
           .catch((error) => {
@@ -282,35 +370,37 @@
           });
       }
 
-      // Load users on page load
-      loadUsers();
-
+      // Redirects for your top buttons
       function redirectToSheetManagement() {
         window.location.href = "/admin-attendance-monthly";
       }
-
       function redirectToSheetManagementDaily() {
         window.location.href = "/admin-attendance-daily";
       }
-
-      // New function: reset attendance
-      async function resetSheet() {
+      function resetSheet() {
         if (!confirm("Are you sure you want to RESET the attendance sheet? This will clear all rows in the attendance table.")) {
           return; // user canceled
         }
-        try {
-          const response = await fetch("/api/reset-rows", { method: "POST" });
-          if (response.ok) {
-            const data = await response.json();
-            alert("Attendance sheet reset:\n" + data.message);
-          } else {
-            const errData = await response.json();
-            alert("Error resetting attendance:\n" + (errData.message || response.status));
-          }
-        } catch (err) {
-          console.error("Error resetting attendance:", err);
-          alert("An error occurred while resetting attendance.");
-        }
+        fetch("/api/reset-rows", { method: "POST" })
+          .then(async (response) => {
+            if (response.ok) {
+              const data = await response.json();
+              alert("Attendance sheet reset:\n" + data.message);
+            } else {
+              const errData = await response.json();
+              alert("Error resetting attendance:\n" + (errData.message || response.status));
+            }
+          })
+          .catch((err) => {
+            console.error("Error resetting attendance:", err);
+            alert("An error occurred while resetting attendance.");
+          });
+      }
+      function gotoFormLeaderboard() {
+        window.location.href = "/admin/form-leaderboard";
+      }
+      function gotoAttendanceLeaderboard() {
+        window.location.href = "/admin/attendance-leaderboard";
       }
     </script>
   </body>

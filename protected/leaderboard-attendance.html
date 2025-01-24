@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance Leaderboard</title>
+  <style>
+    /* Global styling */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(120deg, #f0f4ff, #d9e8ff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .leaderboard-container {
+      background-color: #ffffff;
+      width: 95%;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+      font-size: 1.8rem;
+      letter-spacing: 0.5px;
+    }
+
+    .radio-group {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+    }
+
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      color: #333;
+      cursor: pointer;
+    }
+    .radio-group input[type="radio"] {
+      margin-right: 8px;
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+
+    /* Table styling */
+    .table-container {
+      width: 100%;
+      overflow-x: auto; /* make table scrollable on smaller screens */
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px; /* Ensure table has enough width for columns */
+      background-color: #f9f9f9;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    thead tr {
+      background-color: #3949ab;
+      color: #fff;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      font-size: 0.95rem;
+    }
+
+    th:first-child, td:first-child {
+      width: 60%;
+    }
+
+    th:last-child, td:last-child {
+      width: 40%;
+      text-align: right;
+    }
+
+    /* Hover effect on rows */
+    tbody tr:hover {
+      background-color: #f0f3ff;
+    }
+
+    /* Responsive text size on smaller devices */
+    @media (max-width: 600px) {
+      th, td {
+        font-size: 0.85rem;
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+      }
+    }
+
+    /* Loader styling */
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none; /* hidden by default */
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(255, 255, 255, 0.7);
+      z-index: 9999;
+    }
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #ccc;
+      border-top-color: #3949ab;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Error or empty message styling */
+    .message {
+      text-align: center;
+      color: #666;
+      margin-top: 20px;
+      font-style: italic;
+    }
+
+    /* Chart container styling */
+    .chart-container {
+      margin-top: 40px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+
+      /* Force a controlled height so the chart doesn't grow infinitely */
+      position: relative;
+      height: 400px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .chart-container h2 {
+      margin: 0;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      color: #333;
+    }
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="leaderboard-container">
+    <h1>Attendance Leaderboard</h1>
+
+    <!-- Filter radio buttons -->
+    <div class="radio-group">
+      <label>
+        <input type="radio" name="groupType" value="email" checked />
+        Group by Email
+      </label>
+      <label>
+        <input type="radio" name="groupType" value="customId" />
+        Group by 12-digit ID
+      </label>
+    </div>
+
+    <!-- Table container -->
+    <div class="table-container">
+      <table id="leaderboardTable">
+        <thead>
+          <tr>
+            <th id="groupHeader">User Email</th>
+            <th>Number of Attendance Entries</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <!-- Rows will be inserted dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Chart container -->
+    <div class="chart-container">
+      <h2 style="margin-top: 20px;">Attendance Bar Chart</h2>
+      <canvas id="myChart"></canvas>
+    </div>
+
+    <!-- In case there's no data or an error -->
+    <div class="message" id="message"></div>
+  </div>
+
+  <!-- Loader -->
+  <div id="loader">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // Global chart instance so we can destroy it before creating a new one
+    let myChartInstance = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Radio buttons to toggle grouping
+      const radioButtons = document.querySelectorAll('input[name="groupType"]');
+      radioButtons.forEach(rb => rb.addEventListener("change", fetchAndRenderData));
+
+      // Initially load the data grouped by email
+      fetchAndRenderData();
+    });
+
+    async function fetchAndRenderData() {
+      // Show the loader while fetching
+      const loader = document.getElementById("loader");
+      loader.style.display = "flex";
+
+      // Determine if we group by email or by customId
+      const groupType = document.querySelector('input[name="groupType"]:checked').value;
+
+      // Adjust table header text
+      const groupHeader = document.getElementById("groupHeader");
+      if (groupType === "email") {
+        groupHeader.textContent = "User Email";
+      } else {
+        groupHeader.textContent = "User 12-digit ID";
+      }
+
+      // Clear table body and message
+      const leaderboardBody = document.getElementById("leaderboardBody");
+      leaderboardBody.innerHTML = "";
+      const messageEl = document.getElementById("message");
+      messageEl.textContent = "";
+
+      try {
+        // 1) Fetch attendance data from your backup rows endpoint
+        //    e.g., /api/admin/attendance
+        const response = await fetch("/api/admin/attendance-leaderboard");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const attendanceRows = await response.json();
+
+        // 2) Group data by email or customId
+        const groupedMap = {}; // key -> count
+        attendanceRows.forEach(row => {
+          let key;
+          if (groupType === "email") {
+            key = row.userEmail || "N/A";
+          } else {
+            key = row.userCustomId || "N/A";
+          }
+          if (!groupedMap[key]) groupedMap[key] = 0;
+          groupedMap[key]++;
+        });
+
+        // 3) Convert the dictionary to an array for sorting
+        const resultArray = Object.keys(groupedMap).map(k => ({
+          key: k,
+          count: groupedMap[k],
+        }));
+
+        // Sort descending by count
+        resultArray.sort((a, b) => b.count - a.count);
+
+        // 4) Render table rows
+        if (resultArray.length === 0) {
+          messageEl.textContent = "No attendance data available.";
+        } else {
+          resultArray.forEach(item => {
+            const row = document.createElement("tr");
+            const keyTd = document.createElement("td");
+            keyTd.textContent = item.key;
+            const countTd = document.createElement("td");
+            countTd.textContent = item.count;
+            row.appendChild(keyTd);
+            row.appendChild(countTd);
+            leaderboardBody.appendChild(row);
+          });
+        }
+
+        // 5) Render/update the chart
+        renderChart(resultArray);
+      } catch (err) {
+        console.error("Error loading attendance data:", err);
+        messageEl.textContent = "Error loading data. Please try again.";
+      } finally {
+        // Hide the loader
+        loader.style.display = "none";
+      }
+    }
+
+    function renderChart(dataArray) {
+      // Destroy previous chart instance if it exists
+      if (myChartInstance) {
+        myChartInstance.destroy();
+      }
+
+      // Extract labels and counts
+      const labels = dataArray.map(item => item.key);
+      const counts = dataArray.map(item => item.count);
+
+      const ctx = document.getElementById("myChart").getContext("2d");
+      myChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Attendance Entries",
+              data: counts,
+              backgroundColor: "#3949abcc",
+              borderColor: "#3949ab",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Entries",
+              },
+              ticks: {
+                stepSize: 1,
+              },
+            },
+            x: {
+              title: {
+                display: true,
+                text: "User",
+              },
+            },
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              bodySpacing: 6,
+              padding: 10,
+              backgroundColor: "rgba(0,0,0,0.7)",
+              titleColor: "#fff",
+              bodyColor: "#fff",
+            },
+          },
+        },
+      });
+    }
+  </script>
+</body>
+</html>

@@ -35,6 +35,8 @@ mongoose.connect(
   }
 );
 
+const FormSubmission = require("./models/formSubmission"); 
+
 // Middleware
 app.use(bodyParser.json({ limit: "100mb" }));
 app.use(express.static("public"));
@@ -144,6 +146,22 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
   }
 
   try {
+
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { customId } = req.body;
+
+
+    // 2) Insert a doc in FormSubmission with formType = "clinic"
+    await FormSubmission.create({
+      userEmail: currentUser.email,
+      formType: "clinic",
+      userCustomId: customId
+
+    });
     // Destructure the selectedStamp from req.body
     const {
       applicantName,
@@ -484,6 +502,22 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
   }
 
   try {
+
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { customId } = req.body;
+
+
+    // 2) Insert a doc with formType = "index"
+    await FormSubmission.create({
+      userEmail: currentUser.email,
+      formType: "index",
+      userCustomId: customId
+
+    });
     const {
       applicantName,
       idNumber,
@@ -768,6 +802,8 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
   }
 
   try {
+
+    
     const {
       applicantName,
       idNumber,
@@ -831,6 +867,22 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
     const page = await browser.newPage();
     await page.goto(`http://localhost:${PORT}/pdf-form3`, {
       waitUntil: "networkidle0",
+    });
+
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const { customId } = req.body;
+
+
+    // 2) Insert a doc with formType = "kuching"
+    await FormSubmission.create({
+      userEmail: currentUser.email,
+      formType: "kuching",
+      userCustomId: customId
+
     });
 
     await page.evaluate(
@@ -1158,6 +1210,9 @@ const rowSchema = new mongoose.Schema({
   treatmentDate: String,
   treatmentCost: String,
   patientSignature: String,
+  userEmail: String, // <--- new
+  userCustomId: String,     // <--- NEW FIELD for the person's 12-digit ID
+
   createdAt: { type: Date, default: Date.now }, // Add createdAt field
 });
 
@@ -1193,9 +1248,17 @@ app.post("/api/rows", async (req, res) => {
     treatmentDate,
     treatmentCost,
     patientSignature,
+    userCustomId,  // <--- We'll accept this from the request body now
   } = req.body;
 
   try {
+    // Lookup the user's email
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const userEmail = currentUser.email;
     // Find the current maximum rowNumber
     const lastRow = await Row.findOne({}).sort({ rowNumber: -1 });
     const rowNumber = lastRow ? lastRow.rowNumber + 1 : 1;
@@ -1208,6 +1271,9 @@ app.post("/api/rows", async (req, res) => {
       treatmentDate,
       treatmentCost,
       patientSignature,
+      userEmail, // store the user’s email
+      userCustomId,   // <--- store that ID
+
     });
 
     await newRow.save();
@@ -1221,6 +1287,8 @@ app.post("/api/rows", async (req, res) => {
       treatmentDate: newRow.treatmentDate,
       treatmentCost: newRow.treatmentCost,
       patientSignature: newRow.patientSignature,
+      userEmail: newRow.userEmail,    // same userEmail
+      userCustomId: newRow.userCustomId,  // <--- store it in backup too
       createdAt: newRow.createdAt, // Use the createdAt from newRow
     });
 
@@ -1305,6 +1373,9 @@ const backupRowSchema = new mongoose.Schema({
   treatmentDate: String,
   treatmentCost: String,
   patientSignature: String,
+  userEmail: String, // <--- new
+  userCustomId: String,    // <--- SAME FIELD here too
+
   createdAt: {
     type: Date,
     default: Date.now,
@@ -1435,6 +1506,45 @@ app.get("/api/is-admin", (req, res) => {
   const isAdmin = !!req.session.adminId;
   res.json({ isAdmin });
 });
+
+
+app.get("/admin/form-leaderboard", isAdminAuthenticated, (req, res) => {
+  // Adjust path if you place leaderboard.html elsewhere
+  res.sendFile(path.join(__dirname, "protected", "leaderboard-form.html"));
+});
+
+// GET /api/admin/leaderboard
+app.get("/api/admin/form-leaderboard", isAdminAuthenticated, async (req, res) => {
+  try {
+    // Get *all* form submissions from the FormSubmission collection
+    // or you can add any filters if needed
+    const submissions = await FormSubmission.find({});
+    res.json(submissions);
+  } catch (error) {
+    console.error("Error fetching FormSubmissions for leaderboard:", error);
+    return res.status(500).json({ message: "Error fetching submissions." });
+  }
+});
+
+app.get("/admin/attendance-leaderboard", isAdminAuthenticated, (req, res) => {
+  // Adjust path if you place `leaderboard-attendance.html` elsewhere
+  res.sendFile(path.join(__dirname, "protected", "leaderboard-attendance.html"));
+});
+
+
+// 2) API endpoint to fetch backup rows (attendance data)
+app.get("/api/admin/attendance-leaderboard", isAdminAuthenticated, async (req, res) => {
+  try {
+    // Retrieve all backup rows from the `BackupRow` collection
+    const backupRows = await BackupRow.find({});
+    res.json(backupRows);
+  } catch (error) {
+    console.error("Error fetching backup rows:", error);
+    return res.status(500).json({ message: "Error fetching attendance data." });
+  }
+});
+
+
 
 app.get("/api/backup-rows", async (req, res) => {
   try {
