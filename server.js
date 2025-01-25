@@ -35,7 +35,7 @@ mongoose.connect(
   }
 );
 
-const FormSubmission = require("./models/formSubmission"); 
+const FormSubmission = require("./models/formSubmission");
 
 // Middleware
 app.use(bodyParser.json({ limit: "100mb" }));
@@ -747,33 +747,33 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
       to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com,QMRBV1@alpropharmacy.com,QMRJP1@alpropharmacy.com,QMRMJ1@alpropharmacy.com,qmrlb1.alphac@gmail.com,QMRPJ1@alpropharmacy.com,QMRPL1@alpropharmacy.com,qkc3m1@alpropharmacy.com,qkc7m1@alpropharmacy.com,QKCBK1@alpropharmacy.com,QKCHS1@alpropharmacy.com,QKCMC1@alpropharmacy.com,qkcmj1@alpropharmacy.com,QKCNB1@alpropharmacy.com,qkcp11@alpropharmacy.com,QKCPS1@alpropharmacy.com,QKCSR1@alpropharmacy.com,QKCST1@alpropharmacy.com,qkctj1@alpropharmacy.com,qbtj51@alpropharmacy.com,QBTJK1@alpropharmacy.com,QBTMJ1@alpropharmacy.com,QBTPC1@alpropharmacy.com,QBTSB1@alpropharmacy.com,QSAJHF@alpropharmacy.com,QSBDT1@alpropharmacy.com,QSBFL1@alpropharmacy.com,QSBJC1@alpropharmacy.com,QSBPJ1@alpropharmacy.com,QSBPW1@alpropharmacy.com,QSKAR1@alpropharmacy.com,QSRST1@alpropharmacy.com",
       subject: "schb application",
       text: "Please find your generated PDF document attached.",
-        attachments: [
-          {
-            filename: safeName + ".pdf",
-            path: pdfPath,
-          },
-        ],
+      attachments: [
+        {
+          filename: safeName + ".pdf",
+          path: pdfPath,
+        },
+      ],
     };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending email:", error);
-      return res.status(500).send("Error sending email");
-    }
-    console.log("Email sent:", info.response);
-    res.json({
-      message: "PDF generated, saved, and emailed",
-      link: "/download-server-pdf",
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending email:", error);
+        return res.status(500).send("Error sending email");
+      }
+      console.log("Email sent:", info.response);
+      res.json({
+        message: "PDF generated, saved, and emailed",
+        link: "/download-server-pdf",
+      });
     });
-  });
-} catch (error) {
-  console.error("Error generating PDF:", error.message, error.stack);
-  res.status(500).send("Error generating PDF");
-} finally {
-  if (browser) {
-    await browser.close(); // Ensure browser is always closed
+  } catch (error) {
+    console.error("Error generating PDF:", error.message, error.stack);
+    res.status(500).send("Error generating PDF");
+  } finally {
+    if (browser) {
+      await browser.close(); // Ensure browser is always closed
+    }
   }
-}
 });
 
 //file 3 : Kuching
@@ -803,7 +803,7 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
 
   try {
 
-    
+
     const {
       applicantName,
       idNumber,
@@ -1514,14 +1514,41 @@ app.get("/admin/form-leaderboard", isAdminAuthenticated, (req, res) => {
 });
 
 // GET /api/admin/leaderboard
+
+// Updated API endpoint to fetch form submissions with optional month filtering
 app.get("/api/admin/form-leaderboard", isAdminAuthenticated, async (req, res) => {
   try {
-    // Get *all* form submissions from the FormSubmission collection
-    // or you can add any filters if needed
-    const submissions = await FormSubmission.find({});
+    const { month } = req.query; // Expecting format 'YYYY-MM'
+
+    let filter = {};
+
+    if (month) {
+      // Parse the 'YYYY-MM' format
+      const [year, monthNumber] = month.split('-').map(Number);
+
+      // Validate month and year
+      if (
+        isNaN(year) ||
+        isNaN(monthNumber) ||
+        monthNumber < 1 ||
+        monthNumber > 12
+      ) {
+        return res.status(400).json({ message: "Invalid month format." });
+      }
+
+      // Create Date objects for the start and end of the selected month
+      const startDate = new Date(year, monthNumber - 1, 1);
+      const endDate = new Date(year, monthNumber, 1);
+
+      // Assuming 'createdAt' is a Date field in FormSubmission
+      filter.createdAt = { $gte: startDate, $lt: endDate };
+    }
+
+    // Retrieve form submissions with the applied filter
+    const submissions = await FormSubmission.find(filter);
     res.json(submissions);
   } catch (error) {
-    console.error("Error fetching FormSubmissions for leaderboard:", error);
+    console.error("Error fetching form submissions:", error);
     return res.status(500).json({ message: "Error fetching submissions." });
   }
 });
@@ -1535,8 +1562,24 @@ app.get("/admin/attendance-leaderboard", isAdminAuthenticated, (req, res) => {
 // 2) API endpoint to fetch backup rows (attendance data)
 app.get("/api/admin/attendance-leaderboard", isAdminAuthenticated, async (req, res) => {
   try {
-    // Retrieve all backup rows from the `BackupRow` collection
-    const backupRows = await BackupRow.find({});
+    const { month } = req.query; // Expecting format 'YYYY-MM'
+
+    let filter = {};
+
+    if (month) {
+      // Parse the 'YYYY-MM' format
+      const [year, monthNumber] = month.split('-').map(Number);
+
+      // Create Date objects for the start and end of the selected month
+      const startDate = new Date(year, monthNumber - 1, 1);
+      const endDate = new Date(year, monthNumber, 1);
+
+      // Assuming 'createdAt' is a Date field
+      filter.createdAt = { $gte: startDate, $lt: endDate };
+    }
+
+    // Retrieve backup rows with the applied filter
+    const backupRows = await BackupRow.find(filter);
     res.json(backupRows);
   } catch (error) {
     console.error("Error fetching backup rows:", error);
