@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Storage Dashboard</title>
+
+    <!-- Google Fonts for Consistent Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-pqX3hg9eTLNciYnlBKcWZ+fBYT92sQkDnjSLb0fnI6BjdzSBaXjqUv8FEX7Z/6V9hp70P3Tf2kUpH8yQJ+1wVg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        /* Reset some default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Global Styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff, #d9e8ff);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            color: #333;
+            padding: 20px;
+        }
+
+        /* Container */
+        .storage-container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 1400px;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px 50px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            color: #3949ab;
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 5px;
+            background: #3949ab;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        /* Filter Group */
+        .filter-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group label {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group input[type="month"] {
+            padding: 12px 18px;
+            font-size: 1rem;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            width: 200px;
+        }
+
+        .filter-group input[type="month"]:focus {
+            border-color: #3949ab;
+            box-shadow: 0 0 10px rgba(57, 73, 171, 0.3);
+            outline: none;
+        }
+
+        /* Grid Layout */
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        /* Document Card */
+        .document-card {
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            overflow: visible;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            cursor: pointer;
+            border-radius: 20%;
+            position: relative;
+            /* important for absolute badge positioning */
+
+        }
+
+        /* The status badge in the corner */
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            /* or top-left, bottom-right, etc. */
+            padding: 6px 10px;
+            color: #fff;
+            /* text color always white */
+            font-size: 0.8rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            /* optional */
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            /* backgroundColor will be set dynamically in JS */
+        }
+
+        .document-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .document-thumbnail {
+            background: linear-gradient(135deg, #3949ab, #eaeaea);
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 3rem;
+            border-radius: 10%;
+
+        }
+
+        .document-details {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .document-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        .document-date {
+            font-size: 0.9rem;
+            color: #777;
+            margin-bottom: 15px;
+        }
+
+        .document-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            background: #3949ab;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #5c6bc0;
+            transform: translateY(-2px);
+        }
+
+        /* Loader Styling */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 100px;
+            height: 100px;
+            border: 10px solid #ccc;
+            border-top-color: #3949ab;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Message Styling */
+        .message {
+            text-align: center;
+            color: #666;
+            margin-top: 30px;
+            font-size: 1.2rem;
+            font-style: italic;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .filter-group {
+                gap: 15px;
+            }
+
+            .filter-group label {
+                font-size: 1rem;
+            }
+
+            .filter-group input[type="month"] {
+                width: 180px;
+            }
+
+            .document-thumbnail {
+                height: 130px;
+                font-size: 2.5rem;
+            }
+
+            .document-title {
+                font-size: 1rem;
+            }
+
+            .document-date {
+                font-size: 0.85rem;
+            }
+
+            .action-btn {
+                font-size: 0.85rem;
+                padding: 6px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .filter-group input[type="month"] {
+                width: 100%;
+            }
+
+            .document-thumbnail {
+                height: 120px;
+                font-size: 2rem;
+            }
+
+            .document-title {
+                font-size: 0.95rem;
+            }
+
+            .document-date {
+                font-size: 0.8rem;
+            }
+
+            .action-btn {
+                font-size: 0.8rem;
+                padding: 5px 8px;
+            }
+        }
+
+        /* === THREE-DOT (DROPBTN) STYLES === */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropbtn {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+            list-style-type: none;
+            /* if using <ul> for the dots */
+            display: inline-block;
+        }
+
+        .dropbtn li {
+            background: #333;
+            /* The color of each dot */
+            height: 6px;
+            width: 6px;
+            border-radius: 50%;
+            margin: 4px;
+        }
+
+        /* === THE DROPDOWN MENU (HIDDEN BY DEFAULT) === */
+        .dropdown-content {
+            display: none;
+            /* Hidden initially */
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 200px;
+            /* Adjust as you like */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            overflow: hidden;
+            z-index: 999;
+            right: 0;
+            /* Position the menu to the right edge of the parent */
+            bottom: 100%;
+            margin-bottom: 10px;
+            /* Some space between the button and the menu */
+            /* Position above the .dropdown parent */
+
+            /* Slightly below the three dots */
+        }
+
+        /* === SHOW THE MENU WHEN .show IS ADDED === */
+        .dropdown-content.show {
+            display: block;
+        }
+
+        /* === MENU LINKS === */
+        .dropdown-content a {
+            display: block;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #333;
+            font-size: 0.95rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f2f2f2;
+        }
+
+        /* Remove border from last item */
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        /* Pagination Container */
+        #paginationContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            gap: 10px;
+        }
+
+        /* Pagination Buttons (Prev/Next) */
+        .pagination-btn {
+            padding: 8px 14px;
+            background: #3949ab;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .pagination-btn:hover {
+            background: #5c6bc0;
+            transform: translateY(-2px);
+        }
+
+        /* Page Input (for jumping to a page) */
+        .pagination-input {
+            width: 60px;
+            padding: 8px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .pagination-input:focus {
+            border-color: #3949ab;
+            box-shadow: 0 0 5px rgba(57, 73, 171, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loader -->
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="storage-container">
+        <h1>Storage Dashboard</h1>
+
+        <!-- Month Filter Dropdown -->
+        <div class="filter-group">
+            <label for="monthFilter"><i class="fa-solid fa-filter"></i> Filter by Month:</label>
+            <input type="month" id="monthFilter" name="monthFilter" />
+        </div>
+
+        <!-- Documents Grid -->
+        <div class="documents-grid" id="documentsGrid">
+            <!-- Document cards will be inserted dynamically -->
+        </div>
+
+        <!-- In case there's no data or an error -->
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // ----------------------------
+        // GLOBAL PAGINATION VARIABLES
+        // ----------------------------
+        let allFilesGlobal = [];   // store all results from server
+        let currentPage = 1;       // current page starts at 1
+        const pageSize = 12;       // 12 items per page
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const monthFilter = document.getElementById("monthFilter");
+
+
+            // 1) Automatically set to current YYYY-MM
+            const now = new Date();
+            // Format as "YYYY-MM"
+            const currentMonthString = now.toISOString().slice(0, 7);
+            monthFilter.value = currentMonthString;
+            monthFilter.addEventListener("change", fetchAndDisplayFiles);
+
+            // Initially load all files without any month filter
+            fetchAndDisplayFiles();
+        });
+
+        // Listen for clicks anywhere in the document
+        document.addEventListener("click", (event) => {
+            // If the click is NOT inside a .dropdown element, close all open dropdowns
+            // We'll use the CSS class "show" to indicate open dropdowns.
+
+            // Check if the clicked element is inside an element with class "dropdown"
+            const isClickInsideDropdown = event.target.closest(".dropdown");
+
+            if (!isClickInsideDropdown) {
+                // Close any dropdown that might be open
+                const openDropdowns = document.querySelectorAll(".dropdown-content.show");
+                openDropdowns.forEach((dropdownContent) => {
+                    dropdownContent.classList.remove("show");
+                });
+            }
+        });
+
+
+
+        // ----------------------------
+        // HELPER FUNCTIONS
+        // ----------------------------
+
+        // Extract filename from Cloudinary URL
+        function extractFileName(url) {
+            if (!url) return "Unknown File";
+            const parts = url.split('/');
+            return parts.pop(); // last part
+        }
+
+        // Format date as 'DD MMM YYYY'
+        function formatDate(dateString) {
+            if (!dateString) return "Unknown Date";
+            const options = { year: 'numeric', month: 'short', day: '2-digit' };
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', options);
+        }
+
+        // Adjust Cloudinary URL for 'raw' resources
+        function getCorrectUrl(url, resource_type = 'raw') {
+            if (!url) return "#";
+            if (resource_type === 'raw') {
+                return url.replace('/image/upload/', '/raw/upload/');
+            }
+            return url;
+        }
+
+        // Map status to color
+        function getStatusColor(status) {
+            const statusMap = {
+                received: { status: "Received", color: "red" },
+                signed: { status: "Signed", color: "#FFCC00" },
+                approved: { status: "Approved", color: "green" },
+            };
+            return statusMap[status] || { status: "Unknown", color: "gray" };
+        }
+
+        // ----------------------------
+        // 1) FETCH DATA & INIT PAGINATION
+        // ----------------------------
+        async function fetchAndDisplayFiles() {
+            const loader = document.getElementById("loader");
+            loader.style.display = "flex";
+
+            const selectedMonth = document.getElementById("monthFilter").value;
+
+            // Clear the UI
+            document.getElementById("documentsGrid").innerHTML = "";
+            document.getElementById("message").textContent = "";
+
+            try {
+                let apiUrl = "/api/admin/storage";
+                if (selectedMonth) {
+                    apiUrl += `?month=${selectedMonth}`;
+                }
+
+                const response = await fetch(apiUrl, {
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include", // for session cookies
+                });
+
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+
+                const storageData = await response.json();
+                if (!storageData.all_pdf_documents || !Array.isArray(storageData.all_pdf_documents)) {
+                    throw new Error("Invalid data format received from server.");
+                }
+
+                allFilesGlobal = storageData.all_pdf_documents;
+                currentPage = 1; // reset to first page on new fetch
+
+                // If no documents at all
+                if (allFilesGlobal.length === 0) {
+                    document.getElementById("message").textContent = selectedMonth
+                        ? "No PDF documents found for the selected month."
+                        : "No PDF documents available.";
+                    return;
+                }
+
+                // Display page 1
+                displayCurrentPage();
+
+                // Create or update pagination
+                createPaginationControls();
+
+            } catch (error) {
+                console.error("Error fetching storage data:", error);
+                document.getElementById("message").textContent =
+                    "Error loading storage data. Please try again.";
+            } finally {
+                loader.style.display = "none";
+            }
+        }
+
+        // ----------------------------
+        // 2) DISPLAY THE CURRENT PAGE
+        // ----------------------------
+        function displayCurrentPage() {
+            const documentsGrid = document.getElementById("documentsGrid");
+            documentsGrid.innerHTML = ""; // clear previous cards
+            document.getElementById("message").textContent = ""; // clear any message
+
+            // Calculate slice indexes
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+
+            const currentItems = allFilesGlobal.slice(startIndex, endIndex);
+
+            if (currentItems.length === 0) {
+                document.getElementById("message").textContent = "No documents on this page.";
+                return;
+            }
+
+            // Build cards for items in [startIndex, endIndex)
+            for (const file of currentItems) {
+                // Build the card (same logic as before)
+                const card = document.createElement("div");
+                card.className = "document-card";
+
+                // Get status info
+
+                // Thumbnail
+                const thumbnail = document.createElement("div");
+                thumbnail.className = "document-thumbnail";
+                thumbnail.innerHTML = '<i class="fa-solid fa-file-pdf"></i>';
+                // thumbnail.style.background = color;
+                card.appendChild(thumbnail);
+
+                // 2) Create a status badge
+                const { status, color } = getStatusColor(file.status);
+                const statusBadge = document.createElement("div");
+                statusBadge.className = "status-badge";      // We'll style this in CSS
+                statusBadge.textContent = status;            // e.g. "Received", "Signed", "Approved"
+                statusBadge.style.backgroundColor = color;   // red, #8B8000, green
+
+
+                card.appendChild(statusBadge);
+
+
+                // Document details
+                const details = document.createElement("div");
+                details.className = "document-details";
+
+                const title = document.createElement("div");
+                title.className = "document-title";
+                title.textContent = extractFileName(file.url);
+                details.appendChild(title);
+
+                const date = document.createElement("div");
+                date.className = "document-date";
+                date.textContent = formatDate(file.created_at);
+                details.appendChild(date);
+
+                const actions = document.createElement("div");
+                actions.className = "document-actions";
+
+                // View button
+                const adjustedUrl = getCorrectUrl(file.url, file.resource_type);
+                const viewBtn = document.createElement("a");
+                viewBtn.href = adjustedUrl;
+                viewBtn.target = "_blank";
+                viewBtn.className = "action-btn";
+                viewBtn.innerHTML = `<i class="fa-solid fa-eye"></i> View`;
+                actions.appendChild(viewBtn);
+
+                // Dropdown
+                const dropdown = document.createElement("div");
+                dropdown.className = "dropdown";
+
+                // 3-dot icon
+                const dropBtn = document.createElement("ul");
+                dropBtn.className = "dropbtn icons btn-right";
+                dropBtn.innerHTML = `
+              <li></li>
+              <li></li>
+              <li></li>
+            `;
+                dropBtn.onclick = () => {
+                    dropdownContent.classList.toggle("show");
+                };
+
+                // Dropdown content
+                const dropdownContent = document.createElement("div");
+                dropdownContent.className = "dropdown-content";
+                dropdownContent.innerHTML = `
+              <a href="#" class="dropdown-item" data-status="received">Received form and printed</a>
+              <a href="#" class="dropdown-item" data-status="signed">Signed by Kapitan and submitted online</a>
+              <a href="#" class="dropdown-item" data-status="approved">Approval</a>
+            `;
+
+                // Append
+                dropdown.appendChild(dropBtn);
+                dropdown.appendChild(dropdownContent);
+                actions.appendChild(dropdown);
+
+                // Add dropdown logic
+                dropdownContent.querySelectorAll(".dropdown-item").forEach((link) => {
+                    link.addEventListener("click", async (event) => {
+                        event.preventDefault();
+                        const selectedStatus = link.dataset.status;
+                        const { color } = getStatusColor(selectedStatus);
+
+                        // Update in DB
+                        const success = await updateDocumentStatus(file.url, selectedStatus);
+                        if (success) {
+                            // Reflect changes
+                            statusBadge.textContent = selectedStatus;     // or a nicer label if you prefer
+                            statusBadge.style.backgroundColor = color;
+                            dropdownContent.classList.remove("show");
+                        }
+                    });
+                });
+
+                details.appendChild(actions);
+                card.appendChild(details);
+
+                documentsGrid.appendChild(card);
+            }
+        }
+
+        // ----------------------------
+        // 3) CREATE PAGINATION CONTROLS
+        // ----------------------------
+        function createPaginationControls() {
+            // Remove old pagination if exists
+            let oldPagination = document.getElementById("paginationContainer");
+            if (oldPagination) {
+                oldPagination.remove();
+            }
+
+            const totalItems = allFilesGlobal.length;
+            if (totalItems === 0) return; // no items, no pagination
+
+            const totalPages = Math.ceil(totalItems / pageSize);
+
+            // Container
+            const paginationContainer = document.createElement("div");
+            paginationContainer.id = "paginationContainer";
+            // paginationContainer.style.display = "flex";
+            // paginationContainer.style.justifyContent = "center";
+            // paginationContainer.style.alignItems = "center";
+            // paginationContainer.style.marginTop = "30px";
+            // paginationContainer.style.gap = "10px";
+
+            // Prev button
+            const prevBtn = document.createElement("button");
+            prevBtn.textContent = "Prev";
+            prevBtn.className = "pagination-btn";
+
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayCurrentPage();
+                    updatePaginationInfo();
+                }
+            };
+            paginationContainer.appendChild(prevBtn);
+
+            // Page input
+            const pageInput = document.createElement("input");
+            pageInput.type = "number";
+            pageInput.className = "pagination-input";
+
+            pageInput.style.width = "60px";
+            pageInput.value = currentPage;
+            pageInput.onchange = () => {
+                let newPage = parseInt(pageInput.value, 10);
+                if (newPage >= 1 && newPage <= totalPages) {
+                    currentPage = newPage;
+                    displayCurrentPage();
+                    updatePaginationInfo();
+                } else {
+                    pageInput.value = currentPage; // revert if invalid
+                }
+            };
+            paginationContainer.appendChild(pageInput);
+
+            // "of X" label
+            const ofLabel = document.createElement("span");
+            ofLabel.textContent = ` of ${totalPages}`;
+            paginationContainer.appendChild(ofLabel);
+
+            // Next button
+            const nextBtn = document.createElement("button");
+            nextBtn.textContent = "Next";
+            nextBtn.className = "pagination-btn";
+
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayCurrentPage();
+                    updatePaginationInfo();
+                }
+            };
+            paginationContainer.appendChild(nextBtn);
+
+            // Append to .storage-container
+            document.querySelector(".storage-container").appendChild(paginationContainer);
+
+            // Keep them in sync
+            function updatePaginationInfo() {
+                pageInput.value = currentPage;
+                ofLabel.textContent = ` of ${totalPages}`;
+            }
+        }
+
+        // ----------------------------
+        // 4) UPDATE STATUS IN DB
+        // ----------------------------
+        async function updateDocumentStatus(pdfUrl, newStatus) {
+            try {
+                const response = await fetch("/api/admin/update-status", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pdfUrl, status: newStatus }),
+                    credentials: "include"
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    console.log("Status updated:", data);
+                    return true; // success
+                } else {
+                    console.error("Failed to update status:", data.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error("Error updating status:", error);
+                return false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

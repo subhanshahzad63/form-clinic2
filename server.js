@@ -1,3 +1,4 @@
+require('dotenv').config(); // Load environment variables first
 const express = require("express");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
@@ -12,6 +13,15 @@ const multer = require("multer");
 const MongoStore = require("connect-mongo");
 const jspdf = require("jspdf"); // Ensure this is imported at the top
 const { endOfMonth } = require("date-fns"); // optional helper, or do manual logic
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary (place this after your other middleware)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 
 const storage = multer.memoryStorage();
 
@@ -156,12 +166,7 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
 
 
     // 2) Insert a doc in FormSubmission with formType = "clinic"
-    await FormSubmission.create({
-      userEmail: currentUser.email,
-      formType: "clinic",
-      userCustomId: customId
-
-    });
+   
     // Destructure the selectedStamp from req.body
     const {
       applicantName,
@@ -427,6 +432,29 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
     const pdfPath = path.join(__dirname, "output", "generated-document.pdf");
     fs.writeFileSync(pdfPath, pdf);
 
+    const safeName = applicantName.replace(/[^a-z0-9]/gi, "_");
+
+
+    const uniqueFileName = `${safeName}_${Date.now()}`;
+
+
+    // Upload to Cloudinary - ADD THIS SECTION
+    const cloudinaryResponse = await cloudinary.uploader.upload(pdfPath, {
+      folder: "clinic_pdf_documents",
+      resource_type: "raw",
+      public_id: uniqueFileName,
+    });
+
+    await FormSubmission.create({
+      userEmail: currentUser.email,
+      formType: "clinic",
+      userCustomId: customId,
+      pdfUrl: cloudinaryResponse.secure_url,  // Store Cloudinary link
+      status: "received",  // Default status when uploaded
+    });
+
+    
+
     await page.close();
 
     // Send email with the generated PDF
@@ -438,7 +466,6 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
       },
     });
 
-    const safeName = applicantName.replace(/[^a-z0-9]/gi, "_");
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
@@ -464,6 +491,7 @@ app.post("/download-pdf", isUserAuthenticated, async (req, res) => {
       res.json({
         message: "PDF generated, saved, and emailed",
         link: "/download-server-pdf",
+        cloudinaryUrl: cloudinaryResponse.secure_url,
       });
     });
   } catch (error) {
@@ -512,12 +540,7 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
 
 
     // 2) Insert a doc with formType = "index"
-    await FormSubmission.create({
-      userEmail: currentUser.email,
-      formType: "index",
-      userCustomId: customId
-
-    });
+  
     const {
       applicantName,
       idNumber,
@@ -729,6 +752,29 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
     const pdfPath = path.join(__dirname, "output", "generated-document.pdf");
     fs.writeFileSync(pdfPath, pdf);
 
+    const safeName = applicantName.replace(/[^a-z0-9]/gi, "_");
+
+
+    const uniqueFileName = `${safeName}_${Date.now()}`;
+
+
+    const cloudinaryResponse = await cloudinary.uploader.upload(pdfPath, {
+      folder: "normal_pdf_documents",
+      resource_type: "raw",
+      public_id: uniqueFileName,
+    });
+
+    await FormSubmission.create({
+      userEmail: currentUser.email,
+      formType: "index",
+      userCustomId: customId,
+      pdfUrl: cloudinaryResponse.secure_url,  // Store Cloudinary link
+      status: "received",  // Default status when uploaded
+    });
+
+     // Update FormSubmission with Cloudinary URL - ADD THIS
+    
+
     await page.close();
 
     // Send email with the generated PDF
@@ -740,11 +786,11 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
       },
     });
 
-    const safeName = applicantName.replace(/[^a-z0-9]/gi, "_");
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
       to: "dunstan.alpro@gmail.com,amc.clinicmiri@gmail.com,QMRBV1@alpropharmacy.com,QMRJP1@alpropharmacy.com,QMRMJ1@alpropharmacy.com,qmrlb1.alphac@gmail.com,QMRPJ1@alpropharmacy.com,QMRPL1@alpropharmacy.com,qkc3m1@alpropharmacy.com,qkc7m1@alpropharmacy.com,QKCBK1@alpropharmacy.com,QKCHS1@alpropharmacy.com,QKCMC1@alpropharmacy.com,qkcmj1@alpropharmacy.com,QKCNB1@alpropharmacy.com,qkcp11@alpropharmacy.com,QKCPS1@alpropharmacy.com,QKCSR1@alpropharmacy.com,QKCST1@alpropharmacy.com,qkctj1@alpropharmacy.com,qbtj51@alpropharmacy.com,QBTJK1@alpropharmacy.com,QBTMJ1@alpropharmacy.com,QBTPC1@alpropharmacy.com,QBTSB1@alpropharmacy.com,QSAJHF@alpropharmacy.com,QSBDT1@alpropharmacy.com,QSBFL1@alpropharmacy.com,QSBJC1@alpropharmacy.com,QSBPJ1@alpropharmacy.com,QSBPW1@alpropharmacy.com,QSKAR1@alpropharmacy.com,QSRST1@alpropharmacy.com",
+      // to:"subhanshahzad2k@gmail.com",
       subject: "schb application",
       text: "Please find your generated PDF document attached.",
       attachments: [
@@ -764,6 +810,7 @@ app.post("/download-pdf2", isUserAuthenticated, async (req, res) => {
       res.json({
         message: "PDF generated, saved, and emailed",
         link: "/download-server-pdf",
+        cloudinaryUrl: cloudinaryResponse.secure_url,
       });
     });
   } catch (error) {
@@ -878,12 +925,7 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
 
 
     // 2) Insert a doc with formType = "kuching"
-    await FormSubmission.create({
-      userEmail: currentUser.email,
-      formType: "kuching",
-      userCustomId: customId
-
-    });
+  
 
     await page.evaluate(
       async (
@@ -1032,6 +1074,29 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
     const pdfPath = path.join(__dirname, "output", "generated-document.pdf");
     fs.writeFileSync(pdfPath, pdf);
 
+    const safeName = applicantName.replace(/[^a-z0-9]/gi, "_");
+
+
+    const uniqueFileName = `${safeName}_${Date.now()}`;
+
+
+    const cloudinaryResponse = await cloudinary.uploader.upload(pdfPath, {
+      folder: "kuching_pdf_documents",
+      resource_type: "raw",
+      public_id: uniqueFileName,
+    });
+
+    await FormSubmission.create({
+      userEmail: currentUser.email,
+      formType: "kuching",
+      userCustomId: customId,
+      pdfUrl: cloudinaryResponse.secure_url,  // Store Cloudinary link
+      status: "received",  // Default status when uploaded
+    });
+
+     // Update FormSubmission with Cloudinary URL - ADD THIS
+     
+
     await page.close();
 
     // Send email with the generated PDF
@@ -1043,12 +1108,11 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
       },
     });
 
-    const safeName = applicantName.replace(/[^a-z0-9]/gi, "_");
 
     const mailOptions = {
       from: "dunstan.alpro@gmail.com",
       to: "alpro.clinicmetrocity@gmail.com,amc.clinicmiri@gmail.com", // User's email from form data
-      // to: "", // User's email from form data
+      // to: "subhanshahzad2k@gmail.com", // User's email from form data
       subject: "schb application",
       text: "Please find your generated PDF document attached.",
       attachments: [
@@ -1068,6 +1132,7 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
       res.json({
         message: "PDF generated, saved, and emailed",
         link: "/download-server-pdf",
+        cloudinaryUrl: cloudinaryResponse.secure_url,
       });
     });
   } catch (error) {
@@ -1079,6 +1144,110 @@ app.post("/download-pdf3", isUserAuthenticated, async (req, res) => {
     }
   }
 });
+
+
+
+//storage system
+
+// Serve the storage page only if the admin is authenticated
+app.get("/admin/storage", isAdminAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "storage.html"));
+});
+
+
+// API endpoint to fetch files from Cloudinary storage with optional month filtering
+// API endpoint to fetch all files from Cloudinary storage with optional month filtering
+app.get("/api/admin/storage", isAdminAuthenticated, async (req, res) => {
+  try {
+    const { month } = req.query;
+
+    // Fetch all form submissions from MongoDB
+    const formSubmissions = await FormSubmission.find();
+
+    // Define folders
+    const folders = [
+      "normal_pdf_documents",
+      "clinic_pdf_documents",
+      "kuching_pdf_documents",
+    ];
+
+    // Function to fetch Cloudinary files
+    const fetchResources = async (folder) => {
+      const resources = await cloudinary.api.resources({
+        type: "upload",
+        resource_type: "raw",
+        prefix: `${folder}/`,
+        max_results: 500,
+      });
+
+      let filteredResources = resources.resources;
+      if (month) {
+        const [year, monthNumber] = month.split("-").map(Number);
+        filteredResources = filteredResources.filter((file) => {
+          const fileDate = new Date(file.created_at);
+          return fileDate.getFullYear() === year && fileDate.getMonth() + 1 === monthNumber;
+        });
+      }
+
+      return filteredResources.map((file) => {
+        // Find the corresponding document from MongoDB
+        const matchedSubmission = formSubmissions.find((doc) => doc.pdfUrl === file.secure_url);
+        
+        return {
+          public_id: file.public_id,
+          url: file.secure_url,
+          created_at: file.created_at,
+          format: file.format,
+          resource_type: file.resource_type,
+          folder: folder,
+          status: matchedSubmission ? matchedSubmission.status : "received",  // Default to "received"
+        };
+      });
+    };
+
+    // Fetch resources from all folders
+    const [normalFiles, clinicFiles, kuchingFiles] = await Promise.all(folders.map(fetchResources));
+
+    const allFiles = [...normalFiles, ...clinicFiles, ...kuchingFiles];
+
+    // Sort files by upload date (newest first)
+    allFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json({ all_pdf_documents: allFiles });
+  } catch (error) {
+    console.error("Error fetching files from Cloudinary:", error);
+    res.status(500).json({ message: "Error fetching storage data." });
+  }
+});
+
+
+app.post("/api/admin/update-status", isAdminAuthenticated, async (req, res) => {
+  try {
+    const { pdfUrl, status } = req.body;
+
+    // Validate status
+    if (!["received", "signed", "approved"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
+    // Find and update the document
+    const updatedSubmission = await FormSubmission.findOneAndUpdate(
+      { pdfUrl: pdfUrl }, // Find by Cloudinary URL
+      { status: status },  // Update status
+      { new: true }
+    );
+
+    if (!updatedSubmission) {
+      return res.status(404).json({ message: "Document not found." });
+    }
+
+    res.json({ message: "Status updated successfully.", updatedSubmission });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ message: "Error updating status." });
+  }
+});
+
 
 // ------------------------------------
 // Admin and User Management Functionality

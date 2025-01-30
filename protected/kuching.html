@@ -342,117 +342,169 @@
       }
     }
 
-    /* Updated Modal Styling */
+    /* The dark overlay behind the modal */
     .modal {
       position: fixed;
-      z-index: 9999;
-      left: 0;
       top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.75);
-      /* Darken the background */
-      display: flex;
+      background-color: rgba(0, 0, 0, 0.7);
+      /* Dark overlay */
+      display: none;
+      /* Hidden by default */
       justify-content: center;
       align-items: center;
-      padding: 10px;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease forwards;
     }
 
+    /* Show the modal when triggered */
+    .modal.show {
+      display: flex;
+      /* Switch from none to flex */
+    }
+
+    /* Fade-in overlay animation */
+    @keyframes fadeIn {
+      0% {
+        background-color: rgba(0, 0, 0, 0);
+      }
+
+      100% {
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+    }
+
+    /* The modal content container */
     .modal-content {
-      background-color: white;
-      padding: 20px;
+      background-color: #fff;
+      width: 90%;
+      max-width: 600px;
+      /* Cap at 600px on large screens */
       border-radius: 12px;
-      /* Rounded corners */
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-      /* Elegant shadow */
-      max-width: max-content;
-      /* Adjust modal size */
-      width: max-content;
-      /* Take full width on small screens */
-      text-align: center;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
       position: relative;
-      transition: all 0.3s ease-in-out;
-      /* Smooth transition */
+      display: flex;
+      /* We'll arrange content vertically with flex */
+      flex-direction: column;
+      animation: slideDown 0.3s ease forwards;
       overflow: hidden;
     }
 
-    .modal-content h3 {
-      font-size: 1.5rem;
-      /* Increased title size */
-      margin-bottom: 20px;
+    /* Slide & scale the modal in */
+    @keyframes slideDown {
+      0% {
+        transform: translateY(-30px) scale(0.95);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Header section: title & close button */
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Title in the header */
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
       color: #333;
       font-weight: 600;
-      /* Medium weight for a clean look */
     }
 
-    #cropImage {
-      max-width: 100%;
-      max-height: 300px;
-      /* Prevent overflow */
-      border-radius: 8px;
-      /* Smooth edges for image */
-      margin-bottom: 20px;
-    }
-
-    #cropButton {
-      background-color: #3949ab;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background-color 0.3s ease;
-    }
-
-    #cropButton:hover {
-      background-color: #005f8b;
-      /* Darker shade for hover */
-    }
-
-    /* Close button */
+    /* Close button (X) */
     .modal-close {
-      position: absolute;
-      top: 10px;
-      right: 10px;
       background: none;
       border: none;
-      font-size: 1.8rem;
-      cursor: pointer;
+      font-size: 1.5rem;
       color: #666;
+      cursor: pointer;
+      transition: color 0.2s;
     }
 
     .modal-close:hover {
       color: #ff4d4d;
-      /* Red hover effect for close button */
     }
 
+    /* Body section: image, instructions, etc. */
+    .modal-body {
+      padding: 16px 24px;
+      flex: 1;
+      /* Let body expand */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* The image to crop */
+    #cropImage {
+      max-width: 100%;
+      max-height: 60vh;
+      /* Keep it from overflowing viewport */
+      border-radius: 8px;
+      margin-bottom: 20px;
+      object-fit: cover;
+      /* Nicely scale the image */
+    }
+
+    /* Footer section: Crop & Save button */
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* The crop button */
+    #cropButton {
+      background-color: #3949ab;
+      color: #fff;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: background-color 0.3s ease;
+      outline: none;
+    }
+
+    #cropButton:hover {
+      background-color: #2c3780;
+    }
+
+    /* Responsive adjustments for smaller devices */
     @media (max-width: 768px) {
       .modal-content {
-        text-align: center;
-        max-width: max-content;
-        /* Adjust modal width for mobile */
-        max-height: 80%;
-        /* Limit modal height for mobile */
-        overflow: scroll;
-        margin-right: 20px;
+        width: 95%;
+        max-width: 95%;
       }
 
       #cropImage {
-        max-height: 150px;
-        /* Constrain image height further for mobile */
-        max-width: 150px;
+        max-height: 40vh;
+        /* Constrain further for small screens */
       }
 
       #cropButton {
         width: 100%;
-        /* Make button full width on small screens */
-        padding: 12px;
+        /* Full-width button on smaller screens */
+        margin-top: 10px;
       }
 
-      .modal-close {
-        padding-top: 0;
-        margin-bottom: 20px;
+      .modal-footer {
+        justify-content: center;
+        /* Center button on mobile */
       }
     }
   </style>
@@ -615,12 +667,23 @@
     </div>
 
     <!-- Modal for Image Cropping -->
-    <div id="cropModal" class="modal" style="display: none">
+    <div id="cropModal" class="modal">
       <div class="modal-content">
-        <button class="modal-close" id="closeModal">&times;</button>
-        <h3>Adjust and Crop Your Image</h3>
-        <img id="cropImage" src="" alt="Image to crop" />
-        <button id="cropButton">Crop & Save</button>
+        <!-- HEADER -->
+        <div class="modal-header">
+          <h3>Adjust &amp; Crop Your Image</h3>
+          <button class="modal-close" id="closeModal">&times;</button>
+        </div>
+
+        <!-- BODY -->
+        <div class="modal-body">
+          <img id="cropImage" src="" alt="Image to crop" />
+        </div>
+
+        <!-- FOOTER -->
+        <div class="modal-footer">
+          <button id="cropButton">Crop &amp; Save</button>
+        </div>
       </div>
     </div>
 
@@ -700,7 +763,7 @@
         margin-bottom: 10px; 
         color: #333;
       ">
-          Enter your 12-digit ID:
+          Enter (Your) Alpro Recruiter 12-Digit IC number
         </h2>
 
         <!-- Input -->

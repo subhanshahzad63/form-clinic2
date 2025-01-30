@@ -208,6 +208,8 @@
         <button onclick="resetSheet()">Reset Attendance Sheet</button>
         <button onclick="gotoFormLeaderboard()">Form Submissions Leaderboard</button>
         <button onclick="gotoAttendanceLeaderboard()">Attendance Leaderboard</button>
+        <button onclick="gotoStorage()">File Storage</button>
+
       </div>
 
       <!-- User Management Section -->
@@ -401,6 +403,10 @@
       }
       function gotoAttendanceLeaderboard() {
         window.location.href = "/admin/attendance-leaderboard";
+      }
+
+      function gotoStorage() {
+        window.location.href = "/admin/storage";
       }
     </script>
   </body>
