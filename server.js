@@ -145,6 +145,7 @@ app.get("/pdf-form", (req, res) => {
   }
 });
 
+ 
 // ------------------------------------
 // Updated PDF Generation Functionality
 // ------------------------------------
@@ -1291,6 +1292,15 @@ app.get("/admin-attendance-daily", isAdminAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "admin-attendance-daily.html"));
 });
 
+app.get("/admin-attendance-monthly-kuching", isAdminAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "admin-attendance-monthly-kuching.html"));
+});
+
+
+app.get("/admin-attendance-daily-kuching", isAdminAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "admin-attendance-daily-kuching.html"));
+});
+
 // Get all users (Data fetched dynamically for the dashboard)
 app.get("/admin/users-data", isAdminAuthenticated, async (req, res) => {
   try {
@@ -1398,6 +1408,17 @@ app.get("/api/rows", async (req, res) => {
   }
 });
 
+
+app.get("/api/kuching-rows", async (req, res) => {
+  try {
+    const rows = await KuchingRow.find({}).sort({ createdAt: 1 });
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching Kuching rows:", error);
+    res.status(500).json({ message: "Error fetching Kuching rows", error });
+  }
+});
+
 // Endpoint to get the last 15 rows
 app.get("/api/rows/last15", async (req, res) => {
   try {
@@ -1405,6 +1426,16 @@ app.get("/api/rows/last15", async (req, res) => {
     res.json(rows.reverse()); // Reverse to return in ascending order
   } catch (error) {
     console.error("Error fetching last 15 rows:", error);
+    res.status(500).json({ message: "Error fetching rows", error });
+  }
+});
+
+app.get("/api/kuching-rows/last15", async (req, res) => {
+  try {
+    const rows = await KuchingRow.find({}).sort({ createdAt: -1 }).limit(15);
+    res.json(rows.reverse()); // Return in ascending order
+  } catch (error) {
+    console.error("Error fetching last 15 Kuching rows:", error);
     res.status(500).json({ message: "Error fetching rows", error });
   }
 });
@@ -1467,6 +1498,64 @@ app.post("/api/rows", async (req, res) => {
   } catch (error) {
     console.error("Error saving row:", error);
     res.status(500).json({ message: "Error saving row", error });
+  }
+});
+
+
+app.post("/api/kuching-rows", async (req, res) => {
+  const {
+    name,
+    identificationNumber,
+    treatmentDate,
+    treatmentCost,
+    patientSignature,
+    userCustomId,
+  } = req.body;
+
+  try {
+    // Check current user from session
+    const currentUser = await User.findById(req.session.userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const userEmail = currentUser.email;
+
+    // 1) Find the current max rowNumber
+    const lastRow = await KuchingRow.findOne({}).sort({ rowNumber: -1 });
+    const rowNumber = lastRow ? lastRow.rowNumber + 1 : 1;
+
+    // 2) Create and save the new row
+    const newRow = new KuchingRow({
+      rowNumber,
+      name,
+      identificationNumber,
+      treatmentDate,
+      treatmentCost,
+      patientSignature,
+      userEmail,
+      userCustomId,
+    });
+    await newRow.save();
+
+    // 3) Create a backup
+    const backupRow = new KuchingBackupRow({
+      originalRowId: newRow._id,
+      rowNumber: newRow.rowNumber,
+      name: newRow.name,
+      identificationNumber: newRow.identificationNumber,
+      treatmentDate: newRow.treatmentDate,
+      treatmentCost: newRow.treatmentCost,
+      patientSignature: newRow.patientSignature,
+      userEmail: newRow.userEmail,
+      userCustomId: newRow.userCustomId,
+      createdAt: newRow.createdAt,
+    });
+    await backupRow.save();
+
+    res.json(newRow);
+  } catch (error) {
+    console.error("Error saving Kuching row:", error);
+    res.status(500).json({ message: "Error saving Kuching row", error });
   }
 });
 
@@ -1551,6 +1640,43 @@ const backupRowSchema = new mongoose.Schema({
   },
 });
 
+
+// ==================================
+// 1) Kuching Attendance Schemas
+// ==================================
+const kuchingRowSchema = new mongoose.Schema({
+  rowNumber: Number,
+  name: String,
+  identificationNumber: String,
+  treatmentDate: String,
+  treatmentCost: String,
+  patientSignature: String,
+  userEmail: String,
+  userCustomId: String,
+  createdAt: { type: Date, default: Date.now },
+});
+
+const kuchingBackupRowSchema = new mongoose.Schema({
+  originalRowId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "KuchingRow",
+  },
+  rowNumber: Number,
+  name: String,
+  identificationNumber: String,
+  treatmentDate: String,
+  treatmentCost: String,
+  patientSignature: String,
+  userEmail: String,
+  userCustomId: String,
+  createdAt: { type: Date, default: Date.now },
+});
+
+// Models
+const KuchingRow = mongoose.model("KuchingRow", kuchingRowSchema);
+const KuchingBackupRow = mongoose.model("KuchingBackupRow", kuchingBackupRowSchema);
+
+
 // pdfCounterSchema.js (or in the same file as other models)
 const pdfCounterSchema = new mongoose.Schema({
   sequenceValue: {
@@ -1592,9 +1718,44 @@ app.post("/api/reset-rows", async (req, res) => {
   }
 });
 
+app.post("/api/kuching/reset-rows", async (req, res) => {
+  try {
+    const currentRows = await KuchingRow.find({}).sort({ createdAt: 1 });
+
+    if (currentRows.length > 0) {
+      for (const row of currentRows) {
+        const exists = await KuchingBackupRow.findOne({ createdAt: row.createdAt });
+        if (!exists) {
+          await KuchingBackupRow.create(row.toObject()); 
+        }
+      }
+    }
+
+    // Clear the `KuchingRow` collection after backup
+    await KuchingRow.deleteMany({});
+    res.json({
+      message: "Kuching DB reset successful and no duplicates added to KuchingBackupRow",
+    });
+  } catch (error) {
+    console.error("Error resetting Kuching DB:", error);
+    res.status(500).json({
+      error: "An error occurred while resetting the Kuching DB.",
+    });
+  }
+});
+
 // Serve the main form (index.html) only if the user is authenticated
 app.get("/attendance", isUserAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "attendance-board.html"));
+});
+
+// Serve the main form (index.html) only if the user is authenticated
+app.get("/attendance-miri", isUserAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "attendance.html"));
+});
+
+app.get("/attendance-kuching", isUserAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "protected", "attendance-kuching.html"));
 });
 
 // server.js
@@ -1647,6 +1808,53 @@ app.delete("/api/rows/:id", async (req, res) => {
       .json({ message: "An error occurred while deleting the row.", error });
   }
 });
+
+// ==================================
+// 6) Delete a Kuching Row
+// ==================================
+app.delete("/api/kuching-rows/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1) Find the row in KuchingBackupRow by _id
+    const backupDoc = await KuchingBackupRow.findById(id);
+    if (!backupDoc) {
+      return res.status(404).json({ message: "Kuching backup row not found" });
+    }
+
+    // 2) Delete from KuchingBackupRow
+    await KuchingBackupRow.deleteOne({ _id: id });
+
+    // 3) If new data => backupDoc.originalRowId is set
+    if (backupDoc.originalRowId) {
+      // remove from KuchingRow
+      await KuchingRow.deleteOne({ _id: backupDoc.originalRowId });
+      return res.json({ message: "Row deleted from KuchingRow & KuchingBackupRow" });
+    }
+
+    // 4) Fallback match if older data
+    const fallbackDoc = await KuchingRow.findOne({
+      rowNumber: backupDoc.rowNumber,
+      createdAt: backupDoc.createdAt,
+      name: backupDoc.name,
+    });
+
+    if (fallbackDoc) {
+      await KuchingRow.deleteOne({ _id: fallbackDoc._id });
+      return res.json({
+        message: "Row deleted via fallback from both KuchingRow & KuchingBackupRow",
+      });
+    } else {
+      return res.json({
+        message: "Row deleted from KuchingBackupRow. No matching doc found in KuchingRow (fallback).",
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting Kuching row:", error);
+    res.status(500).json({ message: "Error deleting row", error });
+  }
+});
+
 
 app.post("/api/admin/generate-fake-data", async (req, res) => {
   try {
@@ -1727,6 +1935,11 @@ app.get("/admin/attendance-leaderboard", isAdminAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "protected", "leaderboard-attendance.html"));
 });
 
+app.get("/admin/attendance-leaderboard-kuching", isAdminAuthenticated, (req, res) => {
+  // Adjust path if you place `leaderboard-attendance.html` elsewhere
+  res.sendFile(path.join(__dirname, "protected", "leaderboard-attendance-kuching.html"));
+});
+
 
 // 2) API endpoint to fetch backup rows (attendance data)
 app.get("/api/admin/attendance-leaderboard", isAdminAuthenticated, async (req, res) => {
@@ -1755,6 +1968,30 @@ app.get("/api/admin/attendance-leaderboard", isAdminAuthenticated, async (req, r
     return res.status(500).json({ message: "Error fetching attendance data." });
   }
 });
+
+// ==================================
+// 7) GET /api/admin/kuching-leaderboard?month=YYYY-MM
+// ==================================
+app.get("/api/admin/kuching-leaderboard", isAdminAuthenticated, async (req, res) => {
+  try {
+    const { month } = req.query;
+    let filter = {};
+
+    if (month) {
+      const [year, monthNumber] = month.split("-").map(Number);
+      const startDate = new Date(year, monthNumber - 1, 1);
+      const endDate = new Date(year, monthNumber, 1);
+      filter.createdAt = { $gte: startDate, $lt: endDate };
+    }
+
+    const backupRows = await KuchingBackupRow.find(filter);
+    res.json(backupRows);
+  } catch (error) {
+    console.error("Error fetching Kuching data:", error);
+    res.status(500).json({ message: "Error fetching Kuching data." });
+  }
+});
+
 
 
 
@@ -1826,6 +2063,86 @@ app.get("/api/admin/msheets", isAdminAuthenticated, async (req, res) => {
       .limit(rowsPerPage);
 
     const totalRows = await BackupRow.countDocuments(query);
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+    console.log("Fetched rows from database:", rows);
+    console.log("Pagination details:", {
+      currentPage: parseInt(page, 10),
+      totalPages,
+      totalRows,
+    });
+
+    res.json({
+      rows,
+      pagination: {
+        currentPage: parseInt(page, 10),
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching sheets (month-based):", error);
+    res.status(500).json({ message: "Error fetching month-based sheets", error });
+  }
+});
+
+app.get("/api/admin/kuching/msheets", isAdminAuthenticated, async (req, res) => {
+  const { year, month, page = 1 } = req.query;
+  const rowsPerPage = 15;
+
+  console.log("Received request with parameters:", { year, month, page });
+
+  try {
+    const query = {};
+
+    if (year && month) {
+      // Convert year/month to numeric
+      const numericYear = parseInt(year, 10);
+      const numericMonth = parseInt(month, 10);
+
+      if (!numericYear || !numericMonth || numericMonth < 1 || numericMonth > 12) {
+        console.error("Invalid year/month provided:", { year, month });
+        return res
+          .status(400)
+          .json({ message: "Invalid year or month format provided" });
+      }
+
+      // 1) Calculate first day of that month (UTC-based)
+      // e.g. new Date(2024, 11, 1) => Dec 1, 2024 (because month is 0-index)
+      const startOfMonth = new Date(Date.UTC(numericYear, numericMonth - 1, 1, 0, 0, 0, 0));
+
+      // 2) Calculate end-of-month
+      //    A quick approach: 
+      //      - create date for next month, day=1, minus 1ms
+      const startOfNextMonth = new Date(Date.UTC(numericYear, numericMonth, 1, 0, 0, 0, 0));
+      const endOfMonth = new Date(startOfNextMonth.getTime() - 1);
+      // Or you can use a library like date-fns `endOfMonth(startOfMonth)`
+
+      console.log("startOfMonth =>", startOfMonth.toISOString());
+      console.log("endOfMonth =>", endOfMonth.toISOString());
+
+      // 3) Build the query
+      query.createdAt = {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      };
+    } else {
+      console.log("No year/month provided; returning no rows.");
+      return res.json({
+        rows: [],
+        pagination: {
+          currentPage: parseInt(page, 10),
+          totalPages: 0,
+        },
+      });
+    }
+
+    // 4) With that query, do pagination
+    const rows = await KuchingBackupRow.find(query)
+      .sort({ createdAt: 1 })
+      .skip((page - 1) * rowsPerPage)
+      .limit(rowsPerPage);
+
+    const totalRows = await KuchingBackupRow.countDocuments(query);
     const totalPages = Math.ceil(totalRows / rowsPerPage);
 
     console.log("Fetched rows from database:", rows);
@@ -1937,6 +2254,95 @@ app.get("/api/admin/sheets", isAdminAuthenticated, async (req, res) => {
   }
 });
 
+
+app.get("/api/admin/kuching/sheets", isAdminAuthenticated, async (req, res) => {
+  const { date, page = 1 } = req.query; // Optional date filter and pagination
+  const rowsPerPage = 15;
+
+  console.log("Received request with parameters:", { date, page });
+
+  try {
+    const query = {};
+
+    if (date) {
+      // Validate the date format
+      const utcDate = new Date(date);
+
+      if (isNaN(utcDate.getTime())) {
+        console.error("Invalid date provided:", date);
+        return res
+          .status(400)
+          .json({ message: "Invalid date format provided" });
+      }
+
+      // Calculate start and end of the day in UTC
+      const startOfDay = new Date(
+        Date.UTC(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate(),
+          0,
+          0,
+          0,
+          0
+        )
+      );
+      const endOfDay = new Date(
+        Date.UTC(
+          utcDate.getFullYear(),
+          utcDate.getMonth(),
+          utcDate.getDate(),
+          23,
+          59,
+          59,
+          999
+        )
+      );
+
+      query.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      };
+
+      console.log("Constructed query for date filter (UTC):", query);
+    } else {
+      console.log("No date filter applied; returning no rows.");
+      return res.json({
+        rows: [],
+        pagination: {
+          currentPage: parseInt(page, 10),
+          totalPages: 0,
+        },
+      });
+    }
+
+    const rows = await KuchingBackupRow.find(query)
+      .sort({ createdAt: 1 })
+      .skip((page - 1) * rowsPerPage)
+      .limit(rowsPerPage);
+
+    const totalRows = await KuchingBackupRow.countDocuments(query);
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+    console.log("Fetched rows from database:", rows);
+    console.log("Pagination details:", {
+      currentPage: parseInt(page, 10),
+      totalPages,
+      totalRows,
+    });
+
+    res.json({
+      rows,
+      pagination: {
+        currentPage: parseInt(page, 10),
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching sheets:", error);
+    res.status(500).json({ message: "Error fetching sheets", error });
+  }
+});
 
 app.post("/api/admin/send-pdf", isAdminAuthenticated, async (req, res) => {
   const { sheetId, date } = req.body;

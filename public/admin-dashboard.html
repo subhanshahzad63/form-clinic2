@@ -66,13 +66,24 @@
         background-color: #c9302c;
       }
 
+      /* Each group box has a small heading + button row */
+      .button-group-box {
+        margin-bottom: 30px;
+      }
+      .button-group-box h2 {
+        font-size: 1.1rem;
+        color: #333;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+
       /* Button group styling for the main actions */
       .button-group {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
-        justify-content: center;
-        margin-bottom: 30px;
+        justify-content: flex-start; /* or center, up to you */
+        margin-bottom: 10px;
       }
 
       .button-group button {
@@ -201,18 +212,38 @@
       <button class="logout-btn" onclick="logout()">Logout</button>
       <h1>Admin Dashboard</h1>
 
-      <!-- Button group for the main actions -->
-      <div class="button-group">
-        <button onclick="redirectToSheetManagement()">Manage Sheets (By Month)</button>
-        <button onclick="redirectToSheetManagementDaily()">Manage Sheets (By Date)</button>
-        <button onclick="resetSheet()">Reset Attendance Sheet</button>
-        <button onclick="gotoFormLeaderboard()">Form Submissions Leaderboard</button>
-        <button onclick="gotoAttendanceLeaderboard()">Attendance Leaderboard</button>
-        <button onclick="gotoStorage()">File Storage</button>
-
+      <!-- GENERIC ACTIONS -->
+      <div class="button-group-box">
+        <h2>Generic Actions</h2>
+        <div class="button-group">
+          <button onclick="gotoFormLeaderboard()">Form Submissions Leaderboard</button>
+          <button onclick="gotoStorage()">File Storage</button>
+        </div>
       </div>
 
-      <!-- User Management Section -->
+      <!-- MIRI ACTIONS -->
+      <div class="button-group-box">
+        <h2>Miri Attendance</h2>
+        <div class="button-group">
+          <button onclick="goMiriMain()">Miri Attendance Leaderboard</button>
+          <button onclick="goMiriDaily()">Miri Daily Attendance</button>
+          <button onclick="goMiriMonthly()">Miri Monthly Attendance</button>
+          <button onclick="resetSheet()">Reset Miri Sheet</button>
+        </div>
+      </div>
+
+      <!-- KUCHING ACTIONS -->
+      <div class="button-group-box">
+        <h2>Kuching Attendance</h2>
+        <div class="button-group">
+          <button onclick="goKuchingMain()">Kuching Attendance leaderboard </button>
+          <button onclick="goKuchingDaily()">Kuching Daily Attendance</button>
+          <button onclick="goKuchingMonthly()">Kuching Monthly Attendance</button>
+          <button onclick="resetKuchingSheet()">Reset Kuching Sheet</button>
+        </div>
+      </div>
+
+      <!-- USER MANAGEMENT SECTION -->
       <div class="sub-section">
         <h2>Create User</h2>
         <form id="createUserForm" class="user-form">
@@ -364,7 +395,7 @@
         fetch("/admin/logout", { method: "POST" })
           .then((response) => {
             if (response.ok) {
-              window.location.href = "/admin"; // Adjust if your login page is different
+              window.location.href = "/admin"; 
             }
           })
           .catch((error) => {
@@ -372,42 +403,74 @@
           });
       }
 
-      // Redirects for your top buttons
-      function redirectToSheetManagement() {
-        window.location.href = "/admin-attendance-monthly";
+      // === GENERIC ACTIONS
+      function gotoFormLeaderboard() {
+        window.location.href = "/admin/form-leaderboard";
       }
-      function redirectToSheetManagementDaily() {
+      function gotoStorage() {
+        window.location.href = "/admin/storage";
+      }
+
+      // === MIRI ACTIONS
+      function goMiriMain() {
+        window.location.href = "/admin/attendance-leaderboard";
+      }
+      function goMiriDaily() {
         window.location.href = "/admin-attendance-daily";
       }
+      function goMiriMonthly() {
+        window.location.href = "/admin-attendance-monthly";
+      }
       function resetSheet() {
-        if (!confirm("Are you sure you want to RESET the attendance sheet? This will clear all rows in the attendance table.")) {
-          return; // user canceled
+        if (!confirm("Are you sure you want to RESET the Miri attendance sheet? This will clear all Miri rows.")) {
+          return; 
         }
         fetch("/api/reset-rows", { method: "POST" })
           .then(async (response) => {
             if (response.ok) {
               const data = await response.json();
-              alert("Attendance sheet reset:\n" + data.message);
+              alert("Miri sheet reset:\n" + data.message);
             } else {
               const errData = await response.json();
-              alert("Error resetting attendance:\n" + (errData.message || response.status));
+              alert("Error resetting Miri sheet:\n" + (errData.message || response.status));
             }
           })
           .catch((err) => {
-            console.error("Error resetting attendance:", err);
-            alert("An error occurred while resetting attendance.");
+            console.error("Error resetting Miri attendance:", err);
+            alert("An error occurred while resetting Miri attendance.");
           });
       }
-      function gotoFormLeaderboard() {
-        window.location.href = "/admin/form-leaderboard";
+
+      // === KUCHING ACTIONS
+      function goKuchingMain() {
+        window.location.href = "/admin/attendance-leaderboard-kuching";
       }
-      function gotoAttendanceLeaderboard() {
-        window.location.href = "/admin/attendance-leaderboard";
+      function goKuchingDaily() {
+        window.location.href = "/admin-attendance-daily-kuching";
+      }
+      function goKuchingMonthly() {
+        window.location.href = "/admin-attendance-monthly-kuching";
+      }
+      function resetKuchingSheet() {
+        if (!confirm("Are you sure you want to RESET the Kuching attendance sheet? This will clear all Kuching rows.")) {
+          return;
+        }
+        fetch("/api/kuching/reset-rows", { method: "POST" })
+          .then(async (response) => {
+            if (response.ok) {
+              const data = await response.json();
+              alert("Kuching sheet reset:\n" + data.message);
+            } else {
+              const errData = await response.json();
+              alert("Error resetting Kuching sheet:\n" + (errData.message || response.status));
+            }
+          })
+          .catch((err) => {
+            console.error("Error resetting Kuching attendance:", err);
+            alert("An error occurred while resetting Kuching attendance.");
+          });
       }
 
-      function gotoStorage() {
-        window.location.href = "/admin/storage";
-      }
     </script>
   </body>
 </html>
